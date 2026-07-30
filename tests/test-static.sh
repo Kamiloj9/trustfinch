@@ -103,6 +103,8 @@ rg --quiet 'resources\s*=\s*var\.resource_arns' modules/backup/main.tf \
   || fail "Lean CA-state backup must use an explicit resource selection"
 rg --quiet 'AWSBackupServiceRolePolicyForRestores' modules/backup/main.tf \
   || fail "Lean CA-state backup role must support the documented restore workflow"
+rg --quiet 'failover\.pki\.test' tests/test-local-ha.sh \
+  || fail "HA integration must issue from the secondary CA after primary loss"
 rg --quiet '^test:.*test-recovery' Makefile \
   || fail "all local checks must include the CA state recovery exercise"
 rg --quiet 'test-local-recovery.sh' Makefile \

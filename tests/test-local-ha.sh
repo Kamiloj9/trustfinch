@@ -50,6 +50,28 @@ fingerprint="$("${COMPOSE[@]}" exec -T step-ca step certificate fingerprint /hom
       printf "%s\n" "out-of-policy DNS SAN was unexpectedly issued" >&2
       exit 1
     fi
+    '
+
+# The secondary node shares PostgreSQL state and must keep issuing after the
+# primary process is lost. --no-deps prevents Compose from starting the failed
+# primary again when it launches this disposable client.
+"${COMPOSE[@]}" stop step-ca >/dev/null
+"${COMPOSE[@]}" run --rm --no-deps -T \
+  -e CA_FINGERPRINT="${fingerprint}" \
+  step-cli \
+  -ec '
+    set -euo pipefail
+    ca_url="https://step-ca-secondary:9000"
+    password_file=/tmp/provisioner-password
+    printf "%s\n" "local-test-password-not-for-production" > "${password_file}"
+    step ca bootstrap --ca-url "${ca_url}" --fingerprint "${CA_FINGERPRINT}" --install=false
+    root="$(step path)/certs/root_ca.crt"
+    step ca certificate failover.pki.test /tmp/failover.crt /tmp/failover.key \
+      --ca-url "${ca_url}" \
+      --root "${root}" \
+      --provisioner local-test \
+      --provisioner-password-file "${password_file}"
+    step certificate verify --roots "${root}" /tmp/failover.crt
   '
 
-printf '%s\n' 'local PostgreSQL-backed CA integration checks passed'
+printf '%s\n' 'local PostgreSQL-backed CA failover checks passed'
