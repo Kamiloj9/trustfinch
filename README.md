@@ -19,6 +19,7 @@ The Lean profile does not claim production HA or multi-region recovery. The prod
 - CloudWatch metrics and alarms for issuance by provisioner, CA errors/signing latency, root use, intermediate KMS failures and volume, HA target health, RDS capacity, and runtime disk use.
 - GitLab CI deployment roles that exchange a GitLab ID token for a one-hour AWS STS session, with distinct branch-plan and deployment-tag apply roles.
 - Optional KMS-signed runtime-artifact manifests, verified offline by nodes before they start the CA runtime.
+- A Docker-only container release path that scans image digests, emits SPDX SBOMs, signs and attests them with Cosign, then verifies each runtime image before startup.
 - Acceptance checks that run with Docker on a developer machine: `make test`.
 
 ## Start here
@@ -48,3 +49,4 @@ This runs Terraform formatting and validation in a pinned Terraform container, t
 See [runbooks/deployment.md](runbooks/deployment.md) for the exact rollout order.
 For recurring GitLab deployment access, use [the GitLab Terraform OIDC runbook](runbooks/gitlab-terraform-oidc.md); it deliberately has no static AWS-key fallback.
 For production runtime payloads, follow [the artifact-signing runbook](runbooks/runtime-artifact-signing.md) before enabling verification.
+For container images, use [the image supply-chain runbook](runbooks/container-image-supply-chain.md) before enabling runtime image verification.

@@ -18,6 +18,11 @@ variable "cloudwatch_log_group_name" {
   description = "CloudWatch log group used by the Docker awslogs driver."
 }
 
+variable "aws_region" {
+  type        = string
+  description = "AWS region used for optional private ECR login during runtime startup."
+}
+
 variable "google_oidc_client_secret_arn" {
   type        = string
   description = "Optional Secrets Manager ARN containing {\"client_secret\": \"...\"} for the Google Workspace OIDC native client."
@@ -83,6 +88,37 @@ variable "artifact_signing_public_key_pem" {
 variable "artifact_signer_role_arns" {
   type        = list(string)
   description = "Release signer roles permitted to read artifacts and publish only their signed manifest files."
+  default     = []
+}
+
+variable "container_image_verification_enabled" {
+  type        = bool
+  description = "Require every Docker Compose image to have a Cosign signature and SPDX SBOM attestation before startup."
+  default     = false
+}
+
+variable "container_image_signing_public_key_pem" {
+  type        = string
+  description = "Public PEM key used to verify Cosign runtime-image signatures and attestations."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.container_image_signing_public_key_pem == null || can(regex("BEGIN PUBLIC KEY", var.container_image_signing_public_key_pem))
+    error_message = "container_image_signing_public_key_pem must be a PEM public key when set."
+  }
+}
+
+variable "container_image_ecr_registry" {
+  type        = string
+  description = "Optional private ECR registry hostname holding signed runtime images."
+  default     = null
+  nullable    = true
+}
+
+variable "container_image_ecr_repository_arns" {
+  type        = list(string)
+  description = "Optional least-privilege ECR repositories from which the runtime may pull signed images."
   default     = []
 }
 

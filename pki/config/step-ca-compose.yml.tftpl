@@ -1,6 +1,6 @@
 services:
   step-ca:
-    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    image: ${step_ca_image}
     entrypoint: ["/usr/bin/env", "bash", "/usr/local/bin/pki-step-ca-entrypoint"]
     command: ["/home/step/config/ca.json"]
     restart: unless-stopped
@@ -63,7 +63,7 @@ services:
 %{ endif ~}
 
   caddy:
-    image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    image: ${caddy_image}
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

@@ -1,11 +1,11 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help test test-static test-runtime-bootstrap test-artifact-signature test-log-redaction test-iac test-integration format
+.PHONY: help test test-static test-runtime-bootstrap test-artifact-signature test-container-image-supply-chain test-log-redaction test-iac test-integration format
 
 help:
-	@printf '%s\n' 'Targets:' '  make test              Run every local Docker-based check' '  make test-static       Check repository security invariants' '  make test-runtime-bootstrap Verify the Amazon Linux runtime prerequisites' '  make test-artifact-signature Verify signed runtime artifacts reject tampering' '  make test-log-redaction Verify CA logs redact one-time tokens' '  make test-iac          Format and validate Terraform in Docker' '  make test-integration  Run disposable local step-ca issuance tests' '  make format            Format Terraform in Docker'
+	@printf '%s\n' 'Targets:' '  make test              Run every local Docker-based check' '  make test-static       Check repository security invariants' '  make test-runtime-bootstrap Verify the Amazon Linux runtime prerequisites' '  make test-artifact-signature Verify signed runtime artifacts reject tampering' '  make test-container-image-supply-chain Build, scan, sign, attest, and verify a disposable image' '  make test-log-redaction Verify CA logs redact one-time tokens' '  make test-iac          Format and validate Terraform in Docker' '  make test-integration  Run disposable local step-ca issuance tests' '  make format            Format Terraform in Docker'
 
-test: test-static test-runtime-bootstrap test-artifact-signature test-log-redaction test-iac test-integration
+test: test-static test-runtime-bootstrap test-artifact-signature test-container-image-supply-chain test-log-redaction test-iac test-integration
 
 test-static:
 	@./tests/test-static.sh
@@ -15,6 +15,9 @@ test-runtime-bootstrap:
 
 test-artifact-signature:
 	@bash ./tests/test-artifact-signature.sh
+
+test-container-image-supply-chain:
+	@bash ./tests/test-container-image-supply-chain.sh
 
 test-log-redaction:
 	@./tests/test-log-redaction.sh

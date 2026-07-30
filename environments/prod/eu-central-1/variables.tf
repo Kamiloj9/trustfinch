@@ -101,11 +101,12 @@ variable "gitlab_terraform_deployment" {
 
 variable "runtime_artifact_signing" {
   type = object({
-    key_administrator_arns    = list(string)
-    artifact_signer_role_arns = list(string)
-    verification_enabled      = bool
+    key_administrator_arns     = list(string)
+    artifact_signer_role_arns  = list(string)
+    verification_enabled       = bool
+    image_verification_enabled = optional(bool, false)
   })
-  description = "Optional isolated KMS key and verifier for signed runtime artifact manifests. Enable verification only after the release manifest has been signed and uploaded."
+  description = "Optional isolated KMS release-signing key for signed runtime artifacts and container images. Enable each verifier only after the corresponding signature exists."
   default     = null
   nullable    = true
 
@@ -115,6 +116,31 @@ variable "runtime_artifact_signing" {
       length(var.runtime_artifact_signing.artifact_signer_role_arns) > 0
     )
     error_message = "Runtime artifact signing needs separate key administrators and at least one release signer role."
+  }
+}
+
+variable "runtime_images" {
+  type = object({
+    step_ca_image       = string
+    caddy_image         = string
+    ecr_registry        = optional(string, null)
+    ecr_repository_arns = optional(list(string), [])
+  })
+  description = "Optional digest-pinned runtime-image mirrors. Required when container image verification is enabled so every image can be signed in a registry controlled by the release process."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.runtime_images == null || (
+      can(regex("^.+@sha256:[0-9a-f]{64}$", var.runtime_images.step_ca_image)) &&
+      can(regex("^.+@sha256:[0-9a-f]{64}$", var.runtime_images.caddy_image)) &&
+      ((var.runtime_images.ecr_registry == null && length(var.runtime_images.ecr_repository_arns) == 0) || (
+        can(regex("^[0-9]{12}\\.dkr\\.ecr\\.[a-z0-9-]+\\.amazonaws\\.com$", var.runtime_images.ecr_registry)) &&
+        length(var.runtime_images.ecr_repository_arns) > 0 &&
+        alltrue([for repository_arn in var.runtime_images.ecr_repository_arns : can(regex("^arn:(aws|aws-us-gov|aws-cn):ecr:[a-z0-9-]+:[0-9]{12}:repository/.+$", repository_arn))])
+      ))
+    )
+    error_message = "runtime_images must contain digest-pinned images; private ECR configuration requires a registry hostname and non-empty repository ARN allowlist."
   }
 }
 

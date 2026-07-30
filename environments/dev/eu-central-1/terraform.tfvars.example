@@ -61,6 +61,19 @@ backup_retention_days = 35
 #   key_administrator_arns    = ["arn:aws:iam::111122223333:role/pki-artifact-key-administrator"]
 #   artifact_signer_role_arns = ["arn:aws:iam::111122223333:role/pki-runtime-release-signer"]
 #   verification_enabled      = false
+#   image_verification_enabled = false
+# }
+
+# Required if image_verification_enabled is true: use signed digest-pinned
+# images mirrored to a registry reachable by the runtime nodes.
+# runtime_images = {
+#   step_ca_image       = "111122223333.dkr.ecr.eu-central-1.amazonaws.com/pki-step-ca@sha256:<digest>"
+#   caddy_image         = "111122223333.dkr.ecr.eu-central-1.amazonaws.com/pki-caddy@sha256:<digest>"
+#   ecr_registry        = "111122223333.dkr.ecr.eu-central-1.amazonaws.com"
+#   ecr_repository_arns = [
+#     "arn:aws:ecr:eu-central-1:111122223333:repository/pki-step-ca",
+#     "arn:aws:ecr:eu-central-1:111122223333:repository/pki-caddy",
+#   ]
 # }
 
 # Optional: API Gateway verifies SigV4 before Lambda receives the trusted IAM

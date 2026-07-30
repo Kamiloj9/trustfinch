@@ -55,6 +55,17 @@ ${artifact_signing_public_key_pem}
 ARTIFACT_SIGNING_PUBLIC_KEY
 chmod 0644 /etc/pki/pki-runtime/artifact-signing-public.pem
 %{ endif }
+%{ if container_image_verification_enabled }
+install -d -m 0755 /usr/local/libexec /etc/pki/pki-runtime
+cat >/usr/local/libexec/pki-verify-container-images <<'VERIFY_CONTAINER_IMAGES'
+${container_image_verifier_script}
+VERIFY_CONTAINER_IMAGES
+chmod 0755 /usr/local/libexec/pki-verify-container-images
+cat >/etc/pki/pki-runtime/container-image-signing-public.pem <<'CONTAINER_IMAGE_SIGNING_PUBLIC_KEY'
+${container_image_signing_public_key_pem}
+CONTAINER_IMAGE_SIGNING_PUBLIC_KEY
+chmod 0644 /etc/pki/pki-runtime/container-image-signing-public.pem
+%{ endif }
 
 cat >/etc/systemd/system/pki-runtime.service <<'UNIT'
 [Unit]
@@ -72,6 +83,12 @@ ExecStartPre=/usr/bin/mkdir -p /opt/pki/runtime /var/lib/step-ca
 ExecStartPre=/usr/bin/aws s3 sync s3://${artifact_bucket}/runtime /opt/pki/runtime --exact-timestamps
 %{ if artifact_verification_enabled }
 ExecStartPre=/usr/local/libexec/pki-verify-runtime-artifacts --runtime-dir /opt/pki/runtime --public-key /etc/pki/pki-runtime/artifact-signing-public.pem
+%{ endif }
+%{ if container_image_ecr_registry != "" }
+ExecStartPre=/usr/bin/bash -c '/usr/bin/aws ecr get-login-password --region ${aws_region} | /usr/bin/docker login --username AWS --password-stdin ${container_image_ecr_registry}'
+%{ endif }
+%{ if container_image_verification_enabled }
+ExecStartPre=/usr/local/libexec/pki-verify-container-images --compose-file /opt/pki/runtime/step-ca-compose.yml --public-key /etc/pki/pki-runtime/container-image-signing-public.pem
 %{ endif }
 ExecStartPre=/usr/bin/bash -c 'secret_arn="${google_oidc_client_secret_arn}"; if [[ -n "$secret_arn" ]]; then GOOGLE_OIDC_CLIENT_SECRET="$(/usr/bin/aws secretsmanager get-secret-value --secret-id "$secret_arn" --query SecretString --output text | /usr/bin/python3 -c "import json,sys; print(json.load(sys.stdin)[\"client_secret\"], end=\"\")")" /usr/bin/envsubst < /opt/pki/runtime/step-ca/ca.json > /opt/pki/runtime/step-ca/rendered-ca.json; else cp /opt/pki/runtime/step-ca/ca.json /opt/pki/runtime/step-ca/rendered-ca.json; fi; chown 1000:1000 /opt/pki/runtime/step-ca/rendered-ca.json; chmod 0600 /opt/pki/runtime/step-ca/rendered-ca.json'
 ExecStartPre=/usr/bin/rm -f /opt/pki/runtime/secrets/gitlab-broker.jwk

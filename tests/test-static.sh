@@ -178,6 +178,8 @@ for runtime_template in modules/step-ca-ec2/templates/pki-runtime.service.tftpl 
     || fail "PKI runtime must embed the artifact manifest verifier: ${runtime_template}"
   rg --quiet 'findutils' "${runtime_template}" \
     || fail "PKI runtime must install findutils for fail-closed artifact inventory checks: ${runtime_template}"
+  rg --quiet 'pki-verify-container-images' "${runtime_template}" \
+    || fail "PKI runtime must embed the Cosign container-image verifier: ${runtime_template}"
 done
 rg --quiet 'CloudWatchAgentServerPolicy' modules/step-ca-ec2/main.tf \
   || fail "Lean runtime must authorize CloudWatch Agent metrics"
@@ -249,8 +251,37 @@ rg --quiet 'unmanifested runtime artifact' pki/runtime/verify-runtime-artifacts.
 for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
   rg --quiet 'runtime_artifact_signing_guard' "${environment}/main.tf" \
     || fail "runtime artifact signing must reject a self-signing runtime role in ${environment}"
+  rg --quiet 'runtime_image_signing_guard' "${environment}/main.tf" \
+    || fail "container image signing must require explicit signed image mirrors in ${environment}"
+  rg --quiet 'container_image_ecr_repository_arns' "${environment}/main.tf" \
+    || fail "container image ECR pull scope must be wired in ${environment}"
 done
-bash -n pki/runtime/step-ca-entrypoint.sh pki/runtime/redact-step-ca-logs.sh pki/runtime/verify-runtime-artifacts.sh ceremony/sign-runtime-artifacts.sh \
+rg --quiet 'verify-attestation' pki/runtime/verify-container-images.sh \
+  || fail "runtime image verifier must require an SPDX attestation"
+rg --quiet 'insecure-ignore-tlog' pki/runtime/verify-container-images.sh \
+  || fail "local image supply-chain tests must opt in explicitly when skipping transparency-log verification"
+rg --quiet 'if \[\[ "\$\{allow_insecure_no_tlog\}" == true \]\]' pki/runtime/verify-container-images.sh \
+  || fail "runtime image verification must require an explicit test-only switch before skipping transparency-log verification"
+if rg --quiet 'insecure-ignore-tlog' modules/step-ca-ec2/templates/pki-runtime.service.tftpl modules/step-ca-ha/templates/pki-runtime-ha.service.tftpl; then
+  fail "runtime bootstrap must never disable Cosign transparency-log verification"
+fi
+rg --quiet 'scanners="vuln,secret"' ceremony/sign-container-image.sh \
+  || fail "container release signing must scan vulnerabilities and secrets by default"
+rg --quiet 'spdx-json' ceremony/sign-container-image.sh \
+  || fail "container release signing must generate SPDX SBOMs"
+rg --quiet 'AWS_SESSION_TOKEN' ceremony/sign-container-image.sh \
+  || fail "container release signing must forward temporary AWS credentials to Cosign"
+rg --quiet 'PullSignedRuntimeImagesOnly' modules/step-ca-ec2/main.tf \
+  || fail "Lean runtime must scope private ECR pulls to signed image repositories"
+rg --quiet 'PullSignedRuntimeImagesOnly' modules/step-ca-ha/main.tf \
+  || fail "HA runtime must scope private ECR pulls to signed image repositories"
+rg --quiet 'get-login-password' modules/step-ca-ec2/templates/pki-runtime.service.tftpl \
+  || fail "Lean runtime must obtain a short-lived private ECR login before image verification"
+rg --quiet 'get-login-password' modules/step-ca-ha/templates/pki-runtime-ha.service.tftpl \
+  || fail "HA runtime must obtain a short-lived private ECR login before image verification"
+rg --quiet 'awskms' runbooks/container-image-supply-chain.md \
+  || fail "container signing runbook must use AWS KMS rather than a persistent private key"
+bash -n pki/runtime/step-ca-entrypoint.sh pki/runtime/redact-step-ca-logs.sh pki/runtime/verify-runtime-artifacts.sh pki/runtime/verify-container-images.sh ceremony/sign-runtime-artifacts.sh ceremony/sign-container-image.sh \
   || fail "step-ca log-boundary scripts must have valid Bash syntax"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \

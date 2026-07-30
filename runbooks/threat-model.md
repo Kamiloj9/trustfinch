@@ -19,7 +19,7 @@
 | Runtime issues arbitrary SAN | Authority allowlist plus per-provisioner rollout gate | Add provisioner-specific templates and negative e2e tests |
 | CA private key leaks through IaC | Terraform creates KMS keys only; ceremony writes public `.crt` files | Review plans/state access and retain state audit evidence |
 | Host SSH compromise | No SSH ingress, IMDSv2 required, EC2 role | Enforce SSM-only access and patch cadence in account baseline |
-| Artifact tampering | Runtime S3 read-only; when enabled, a separate KMS key signs a complete runtime manifest and nodes fail closed on a bad signature/hash | Enable the signing runbook and add image-signature/SBOM attestation before production |
+| Artifact or image tampering | Runtime S3 read-only; when enabled, a separate KMS release-signing key signs the complete runtime manifest and Cosign-signed image digests with SPDX attestations; nodes fail closed on bad evidence | Enable both signing runbooks, mirror approved images, and retain release scan/SBOM evidence before production |
 | Host loss | Configuration and public certs are reconstructible; state volume requires backup | Test backup restore and document RTO/RPO |
 | CA outage | Clients must renew early with jitter/backoff | Build PostgreSQL HA / second-region profile when required |
 

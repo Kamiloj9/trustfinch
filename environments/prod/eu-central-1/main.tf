@@ -38,27 +38,31 @@ resource "aws_cloudwatch_log_group" "runtime" {
 module "step_ca_ha" {
   source = "../../../modules/step-ca-ha"
 
-  name                            = var.name
-  aws_region                      = var.aws_region
-  vpc_id                          = module.network.vpc_id
-  private_subnet_ids              = module.network.private_subnet_ids
-  public_subnet_ids               = module.network.public_subnet_ids
-  cloudwatch_log_group_arn        = aws_cloudwatch_log_group.runtime.arn
-  cloudwatch_log_group_name       = aws_cloudwatch_log_group.runtime.name
-  database_secret_arn             = module.postgres.master_secret_arn
-  google_oidc_client_secret_arn   = try(var.google_oidc.client_secret_arn, null)
-  gitlab_broker_jwk_secret_arn    = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
-  gitlab_broker_enabled           = var.gitlab_oidc != null
-  runtime_release_id              = var.runtime_release_id
-  allowed_https_cidrs             = var.allowed_https_cidrs
-  acm_certificate_arn             = var.acm_certificate_arn
-  enable_waf_rate_limit           = var.enable_waf_rate_limit
-  waf_rate_limit                  = var.waf_rate_limit
-  certificate_publisher_role_arns = var.certificate_publisher_role_arns
-  artifact_verification_enabled   = try(var.runtime_artifact_signing.verification_enabled, false)
-  artifact_signing_public_key_pem = try(module.runtime_artifact_signing[0].public_key_pem, null)
-  artifact_signer_role_arns       = try(var.runtime_artifact_signing.artifact_signer_role_arns, [])
-  tags                            = local.tags
+  name                                   = var.name
+  aws_region                             = var.aws_region
+  vpc_id                                 = module.network.vpc_id
+  private_subnet_ids                     = module.network.private_subnet_ids
+  public_subnet_ids                      = module.network.public_subnet_ids
+  cloudwatch_log_group_arn               = aws_cloudwatch_log_group.runtime.arn
+  cloudwatch_log_group_name              = aws_cloudwatch_log_group.runtime.name
+  database_secret_arn                    = module.postgres.master_secret_arn
+  google_oidc_client_secret_arn          = try(var.google_oidc.client_secret_arn, null)
+  gitlab_broker_jwk_secret_arn           = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
+  gitlab_broker_enabled                  = var.gitlab_oidc != null
+  runtime_release_id                     = var.runtime_release_id
+  allowed_https_cidrs                    = var.allowed_https_cidrs
+  acm_certificate_arn                    = var.acm_certificate_arn
+  enable_waf_rate_limit                  = var.enable_waf_rate_limit
+  waf_rate_limit                         = var.waf_rate_limit
+  certificate_publisher_role_arns        = var.certificate_publisher_role_arns
+  artifact_verification_enabled          = try(var.runtime_artifact_signing.verification_enabled, false)
+  artifact_signing_public_key_pem        = try(module.runtime_artifact_signing[0].public_key_pem, null)
+  artifact_signer_role_arns              = try(var.runtime_artifact_signing.artifact_signer_role_arns, [])
+  container_image_verification_enabled   = try(var.runtime_artifact_signing.image_verification_enabled, false)
+  container_image_signing_public_key_pem = try(module.runtime_artifact_signing[0].public_key_pem, null)
+  container_image_ecr_registry           = try(var.runtime_images.ecr_registry, null)
+  container_image_ecr_repository_arns    = try(var.runtime_images.ecr_repository_arns, [])
+  tags                                   = local.tags
 }
 
 module "gitlab_enrollment_replay" {
@@ -139,6 +143,24 @@ resource "terraform_data" "runtime_artifact_signing_guard" {
     precondition {
       condition     = var.runtime_artifact_signing == null || !contains(var.runtime_artifact_signing.artifact_signer_role_arns, module.step_ca_ha.runtime_role_arn)
       error_message = "The HA step-ca runtime role must not sign its own runtime artifact manifest."
+    }
+  }
+}
+
+resource "terraform_data" "runtime_image_signing_guard" {
+  input = {
+    signing = var.runtime_artifact_signing
+    images  = var.runtime_images
+    broker  = var.gitlab_oidc
+  }
+
+  lifecycle {
+    precondition {
+      condition = !try(var.runtime_artifact_signing.image_verification_enabled, false) || (
+        var.runtime_images != null &&
+        (var.gitlab_oidc == null || can(regex("^.+@sha256:[0-9a-f]{64}$", var.gitlab_oidc.broker_image)))
+      )
+      error_message = "Container-image verification requires signed, digest-pinned step_ca_image and caddy_image mirrors; the optional GitLab broker image must also be digest-pinned."
     }
   }
 }
@@ -290,6 +312,7 @@ locals {
     ca_fqdn               = var.ca_fqdn
     gitlab_broker_enabled = var.gitlab_oidc != null
     gitlab_broker_image   = try(var.gitlab_oidc.broker_image, "")
+    step_ca_image         = try(var.runtime_images.step_ca_image, "smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270")
     database_endpoint     = module.postgres.endpoint
     database_port         = module.postgres.port
     database_name         = module.postgres.database_name

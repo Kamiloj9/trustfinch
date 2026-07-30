@@ -44,6 +44,36 @@ resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
+data "aws_iam_policy_document" "runtime_container_image_ecr" {
+  count = length(var.container_image_ecr_repository_arns) == 0 ? 0 : 1
+
+  statement {
+    sid       = "GetRuntimeImageRegistryToken"
+    effect    = "Allow"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "PullSignedRuntimeImagesOnly"
+    effect = "Allow"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer",
+    ]
+    resources = var.container_image_ecr_repository_arns
+  }
+}
+
+resource "aws_iam_role_policy" "runtime_container_image_ecr" {
+  count = length(var.container_image_ecr_repository_arns) == 0 ? 0 : 1
+
+  name   = "step-ca-signed-runtime-images"
+  role   = aws_iam_role.runtime.name
+  policy = data.aws_iam_policy_document.runtime_container_image_ecr[0].json
+}
+
 data "aws_iam_policy_document" "runtime_google_oidc_secret" {
   count = var.google_oidc_client_secret_arn == null ? 0 : 1
 
@@ -291,21 +321,36 @@ resource "aws_instance" "runtime" {
   }
 
   user_data = templatefile("${path.module}/templates/pki-runtime.service.tftpl", {
-    artifact_bucket                 = aws_s3_bucket.artifacts.id
-    artifact_verification_enabled   = var.artifact_verification_enabled
-    artifact_signing_public_key_pem = coalesce(var.artifact_signing_public_key_pem, "")
-    artifact_verifier_script        = file("${path.module}/../../pki/runtime/verify-runtime-artifacts.sh")
-    artifact_signer_role_arns       = var.artifact_signer_role_arns
-    cloudwatch_log_group_name       = var.cloudwatch_log_group_name
-    google_oidc_client_secret_arn   = coalesce(var.google_oidc_client_secret_arn, "")
-    gitlab_broker_jwk_secret_arn    = coalesce(var.gitlab_broker_jwk_secret_arn, "")
-    pki_name                        = var.name
+    artifact_bucket                        = aws_s3_bucket.artifacts.id
+    artifact_verification_enabled          = var.artifact_verification_enabled
+    artifact_signing_public_key_pem        = coalesce(var.artifact_signing_public_key_pem, "")
+    artifact_verifier_script               = file("${path.module}/../../pki/runtime/verify-runtime-artifacts.sh")
+    artifact_signer_role_arns              = var.artifact_signer_role_arns
+    aws_region                             = var.aws_region
+    container_image_verification_enabled   = var.container_image_verification_enabled
+    container_image_signing_public_key_pem = coalesce(var.container_image_signing_public_key_pem, "")
+    container_image_verifier_script        = file("${path.module}/../../pki/runtime/verify-container-images.sh")
+    container_image_ecr_registry           = coalesce(var.container_image_ecr_registry, "")
+    cloudwatch_log_group_name              = var.cloudwatch_log_group_name
+    google_oidc_client_secret_arn          = coalesce(var.google_oidc_client_secret_arn, "")
+    gitlab_broker_jwk_secret_arn           = coalesce(var.gitlab_broker_jwk_secret_arn, "")
+    pki_name                               = var.name
   })
 
   lifecycle {
     precondition {
-      condition     = !var.artifact_verification_enabled || var.artifact_signing_public_key_pem != null
-      error_message = "artifact_signing_public_key_pem is required when artifact_verification_enabled is true."
+      condition     = (!var.artifact_verification_enabled || var.artifact_signing_public_key_pem != null) && (!var.container_image_verification_enabled || var.container_image_signing_public_key_pem != null)
+      error_message = "A release-signing public key is required for every enabled runtime artifact or container-image verification control."
+    }
+
+    precondition {
+      condition     = !var.container_image_verification_enabled || var.artifact_verification_enabled
+      error_message = "container_image_verification_enabled requires artifact_verification_enabled so the Compose configuration is also signed."
+    }
+
+    precondition {
+      condition     = (var.container_image_ecr_registry == null) == (length(var.container_image_ecr_repository_arns) == 0)
+      error_message = "container_image_ecr_registry and container_image_ecr_repository_arns must be configured together."
     }
   }
 

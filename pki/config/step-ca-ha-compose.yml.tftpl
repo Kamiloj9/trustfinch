@@ -1,6 +1,6 @@
 services:
   step-ca:
-    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    image: ${step_ca_image}
     entrypoint: ["/usr/bin/env", "bash", "/usr/local/bin/pki-step-ca-entrypoint"]
     command: ["/home/step/config/ca.json"]
     restart: unless-stopped

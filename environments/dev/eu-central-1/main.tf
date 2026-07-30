@@ -53,18 +53,23 @@ resource "aws_cloudwatch_log_group" "runtime" {
 module "step_ca_ec2" {
   source = "../../../modules/step-ca-ec2"
 
-  name                            = var.name
-  vpc_id                          = module.network.vpc_id
-  subnet_id                       = module.network.public_subnet_ids[0]
-  cloudwatch_log_group_name       = aws_cloudwatch_log_group.runtime.name
-  allowed_https_cidrs             = var.allowed_https_cidrs
-  certificate_publisher_role_arns = var.certificate_publisher_role_arns
-  artifact_verification_enabled   = try(var.runtime_artifact_signing.verification_enabled, false)
-  artifact_signing_public_key_pem = try(module.runtime_artifact_signing[0].public_key_pem, null)
-  artifact_signer_role_arns       = try(var.runtime_artifact_signing.artifact_signer_role_arns, [])
-  google_oidc_client_secret_arn   = try(var.google_oidc.client_secret_arn, null)
-  gitlab_broker_jwk_secret_arn    = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
-  tags                            = local.tags
+  name                                   = var.name
+  aws_region                             = var.aws_region
+  vpc_id                                 = module.network.vpc_id
+  subnet_id                              = module.network.public_subnet_ids[0]
+  cloudwatch_log_group_name              = aws_cloudwatch_log_group.runtime.name
+  allowed_https_cidrs                    = var.allowed_https_cidrs
+  certificate_publisher_role_arns        = var.certificate_publisher_role_arns
+  artifact_verification_enabled          = try(var.runtime_artifact_signing.verification_enabled, false)
+  artifact_signing_public_key_pem        = try(module.runtime_artifact_signing[0].public_key_pem, null)
+  artifact_signer_role_arns              = try(var.runtime_artifact_signing.artifact_signer_role_arns, [])
+  container_image_verification_enabled   = try(var.runtime_artifact_signing.image_verification_enabled, false)
+  container_image_signing_public_key_pem = try(module.runtime_artifact_signing[0].public_key_pem, null)
+  container_image_ecr_registry           = try(var.runtime_images.ecr_registry, null)
+  container_image_ecr_repository_arns    = try(var.runtime_images.ecr_repository_arns, [])
+  google_oidc_client_secret_arn          = try(var.google_oidc.client_secret_arn, null)
+  gitlab_broker_jwk_secret_arn           = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
+  tags                                   = local.tags
 }
 
 module "backup" {
@@ -146,6 +151,24 @@ resource "terraform_data" "runtime_artifact_signing_guard" {
     precondition {
       condition     = var.runtime_artifact_signing == null || !contains(var.runtime_artifact_signing.artifact_signer_role_arns, module.step_ca_ec2.runtime_role_arn)
       error_message = "The Lean step-ca runtime role must not sign its own runtime artifact manifest."
+    }
+  }
+}
+
+resource "terraform_data" "runtime_image_signing_guard" {
+  input = {
+    signing = var.runtime_artifact_signing
+    images  = var.runtime_images
+    broker  = var.gitlab_oidc
+  }
+
+  lifecycle {
+    precondition {
+      condition = !try(var.runtime_artifact_signing.image_verification_enabled, false) || (
+        var.runtime_images != null &&
+        (var.gitlab_oidc == null || can(regex("^.+@sha256:[0-9a-f]{64}$", var.gitlab_oidc.broker_image)))
+      )
+      error_message = "Container-image verification requires signed, digest-pinned step_ca_image and caddy_image mirrors; the optional GitLab broker image must also be digest-pinned."
     }
   }
 }
@@ -288,6 +311,8 @@ locals {
     ca_fqdn               = var.ca_fqdn
     gitlab_broker_enabled = var.gitlab_oidc != null
     gitlab_broker_image   = try(var.gitlab_oidc.broker_image, "")
+    step_ca_image         = try(var.runtime_images.step_ca_image, "smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270")
+    caddy_image           = try(var.runtime_images.caddy_image, "caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d")
   })
 
   caddyfile = templatefile("${path.module}/../../../pki/config/Caddyfile.tftpl", {
