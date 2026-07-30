@@ -123,6 +123,14 @@ rg --quiet 'step ca provisioner add acme --type ACME' docker/step-ca/local-entry
   || fail "local test CA must enable the ACME provisioner"
 rg --quiet 'rejected-acme\.crt' tests/test-local-ca.sh \
   || fail "local ACME test must reject an out-of-policy order"
+rg --fixed-strings --quiet -- '--out "${temporary_certificate}"' clients/step-renewer/renew-step-certificate.sh \
+  || fail "renewal helper must write to a temporary certificate first"
+rg --fixed-strings --quiet 'mv -f "${temporary_certificate}" "${certificate_path}"' clients/step-renewer/renew-step-certificate.sh \
+  || fail "renewal helper must atomically replace the live certificate"
+rg --quiet 'max_attempts' clients/step-renewer/renew-step-certificate.sh \
+  || fail "renewal helper must use bounded retry attempts"
+rg --quiet 'RandomizedDelaySec' clients/step-renewer/systemd/pki-certificate-renew.timer \
+  || fail "renewal timer must add scheduling jitter"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"

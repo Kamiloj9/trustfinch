@@ -28,6 +28,8 @@ services:
       default:
         aliases:
           - acme.pki.test
+    volumes:
+      - ./clients/step-renewer/renew-step-certificate.sh:/usr/local/bin/pki-renew-certificate:ro
 
 volumes:
   step-ca-state:

@@ -1,0 +1,9 @@
+[Unit]
+Description=Renew workload certificate from step-ca
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/pki/renewal.env
+ExecStart=/usr/local/libexec/pki-renew-certificate

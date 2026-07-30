@@ -49,6 +49,41 @@ docker run --rm \
       --provisioner-password-file "${password_file}"
     step certificate verify --roots "${root}" /tmp/allowed.crt
 
+    step ca certificate renewable.pki.test /tmp/renewable.crt /tmp/renewable.key \
+      --ca-url "${ca_url}" \
+      --root "${root}" \
+      --provisioner local-test \
+      --provisioner-password-file "${password_file}"
+    chmod 0640 /tmp/renewable.crt
+    cp /tmp/renewable.crt /tmp/renewable-before.crt
+
+    PKI_CERTIFICATE_PATH=/tmp/renewable.crt \
+      PKI_PRIVATE_KEY_PATH=/tmp/renewable.key \
+      PKI_CA_URL="${ca_url}" \
+      PKI_ROOT_CERTIFICATE_PATH="${root}" \
+      PKI_RENEW_FORCE_NOW=true \
+      PKI_RENEW_MAX_ATTEMPTS=1 \
+      pki-renew-certificate
+    step certificate verify --roots "${root}" /tmp/renewable.crt
+    test "$(stat -c %a /tmp/renewable.crt)" = "640"
+    if cmp -s /tmp/renewable-before.crt /tmp/renewable.crt; then
+      printf "%s\\n" "renewal did not atomically replace the certificate" >&2
+      exit 1
+    fi
+
+    cp /tmp/renewable.crt /tmp/renewable-before-failure.crt
+    if PKI_CERTIFICATE_PATH=/tmp/renewable.crt \
+      PKI_PRIVATE_KEY_PATH=/tmp/renewable.key \
+      PKI_CA_URL=https://127.0.0.1:1 \
+      PKI_ROOT_CERTIFICATE_PATH="${root}" \
+      PKI_RENEW_FORCE_NOW=true \
+      PKI_RENEW_MAX_ATTEMPTS=1 \
+      pki-renew-certificate; then
+      printf "%s\\n" "unreachable CA renewal unexpectedly succeeded" >&2
+      exit 1
+    fi
+    cmp /tmp/renewable-before-failure.crt /tmp/renewable.crt
+
     step ca certificate acme.pki.test /tmp/acme.crt /tmp/acme.key \
       --ca-url "${ca_url}" \
       --root "${root}" \
