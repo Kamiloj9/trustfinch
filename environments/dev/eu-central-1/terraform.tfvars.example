@@ -27,6 +27,20 @@ allowed_https_cidrs = ["203.0.113.0/24"]
 #     ref_type = "branch", ref = "main", subject = "gitlab:platform/pki", uri_san = "spiffe://dev.example.internal/gitlab/platform/pki"
 #   }]
 # }
+# Optional: API Gateway verifies SigV4 before Lambda receives the trusted IAM
+# context. Build broker/iam-lambda.Dockerfile for linux/arm64, publish it to
+# ECR by immutable digest, and attach the emitted invoke-policy output only to
+# the reviewed role below. Leave ca_tls_root_certificate_pem empty when the CA
+# endpoint uses a public Web-PKI certificate.
+# iam_sigv4 = {
+#   lambda_image                = "111122223333.dkr.ecr.eu-central-1.amazonaws.com/pki-iam-broker@sha256:replace-with-64-hex-digest"
+#   broker_jwk_secret_arn       = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/iam-broker-jwk"
+#   ca_tls_root_certificate_pem = ""
+#   broker_jwk_public           = { kty = "EC", crv = "P-256", x = "replace", y = "replace", kid = "iam-broker-2026-07" }
+#   identities = [{
+#     role_arn = "arn:aws:iam::111122223333:role/platform-pki-runner", subject = "iam:platform/pki-runner", uri_san = "spiffe://dev.example.internal/iam/platform/pki-runner"
+#   }]
+# }
 # aws_iid_accounts      = ["111122223333"]
 # aws_iid_dns_allowlist = ["*.eu-central-1.compute.internal"]
 

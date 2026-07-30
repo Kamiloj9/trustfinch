@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io"
@@ -232,21 +230,6 @@ func (s *Server) requestCertificate(ctx context.Context, csr, ott string) ([]byt
 		return nil, 0, err
 	}
 	return contents, response.StatusCode, nil
-}
-
-func parseApprovedCSR(rawPEM string, identity Identity) (*x509.CertificateRequest, error) {
-	block, rest := pem.Decode([]byte(rawPEM))
-	if block == nil || block.Type != "CERTIFICATE REQUEST" || len(strings.TrimSpace(string(rest))) != 0 {
-		return nil, fmt.Errorf("invalid CSR PEM")
-	}
-	csr, err := x509.ParseCertificateRequest(block.Bytes)
-	if err != nil || csr.CheckSignature() != nil {
-		return nil, fmt.Errorf("invalid CSR signature")
-	}
-	if csr.Subject.CommonName != identity.Subject || len(csr.DNSNames) != 0 || len(csr.EmailAddresses) != 0 || len(csr.IPAddresses) != 0 || len(csr.URIs) != 1 || csr.URIs[0].String() != identity.URISAN {
-		return nil, fmt.Errorf("CSR identity does not match authorization")
-	}
-	return csr, nil
 }
 
 func bearerToken(header string) (string, error) {

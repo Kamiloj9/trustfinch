@@ -11,6 +11,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/example/self-hosted-pki/broker/internal/issuer"
 )
 
 var ErrReplay = errors.New("GitLab token was already used")
@@ -76,7 +77,7 @@ func NewDynamoDBReplayStore(ctx context.Context, table string) (ReplayStore, err
 }
 
 func (s *dynamoDBReplayStore) Claim(ctx context.Context, jti string, expiresAt time.Time) (func(context.Context, bool), error) {
-	requestID := randomTokenID()
+	requestID := issuer.NewTokenID()
 	_, err := s.client.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName:           aws.String(s.table),
 		ConditionExpression: aws.String("attribute_not_exists(jti)"),

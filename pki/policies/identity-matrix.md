@@ -6,6 +6,7 @@ Replace every example value and obtain approval before creating provisioners. A 
 |---|---|---|---|---:|---|
 | Google Workspace employee | OIDC, verified company domain | verified e-mail only; no caller-selected DNS SAN | clientAuth | 8h | foreign issuer, audience, unverified e-mail, foreign domain, custom SAN |
 | GitLab protected CI | GitLab OIDC | `spiffe://example.internal/gitlab/<project>` or approved DNS name | clientAuth/serverAuth | 24h | wrong `aud`, project, ref protection, replayed token, custom SAN |
+| AWS IAM workload | API Gateway `AWS_IAM` / SigV4 | fixed `spiffe://example.internal/iam/<role>` only | clientAuth/serverAuth | 1h | unsigned request, IAM user/federated ARN, foreign role, custom SAN |
 | EC2 workload | AWS Instance Identity Document | IID-provided private IP and AWS internal DNS only; a custom workload hostname needs a broker | clientAuth/serverAuth | 24h | foreign account, old IID, custom SAN, TOFU bypass |
 | ACME workload | ACME challenge | DNS names under approved subdomain | serverAuth | 24h | unauthorized challenge, DNS outside allowed zone |
 | Bootstrap device | one-time JWK token, then mTLS | device ID bound at bootstrap | clientAuth | 30d | reused token, different device ID, expired token |

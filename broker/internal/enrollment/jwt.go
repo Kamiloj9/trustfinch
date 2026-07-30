@@ -1,39 +1,22 @@
 package enrollment
 
 import (
-	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
+	"github.com/example/self-hosted-pki/broker/internal/issuer"
 	"github.com/go-jose/go-jose/v4"
 )
 
-type brokerKey struct {
-	PrivateKey *ecdsa.PrivateKey
-	KeyID      string
-}
+type brokerKey = issuer.SigningKey
 
 func LoadECPrivateJWK(path string) (brokerKey, error) {
-	contents, err := os.ReadFile(path)
-	if err != nil {
-		return brokerKey{}, err
-	}
-	var jwk jose.JSONWebKey
-	if err := json.Unmarshal(contents, &jwk); err != nil {
-		return brokerKey{}, err
-	}
-	privateKey, ok := jwk.Key.(*ecdsa.PrivateKey)
-	if !ok || privateKey.Curve.Params().Name != "P-256" || jwk.KeyID == "" || !jwk.Valid() {
-		return brokerKey{}, fmt.Errorf("broker JWK must be a P-256 EC key with kid")
-	}
-	return brokerKey{PrivateKey: privateKey, KeyID: jwk.KeyID}, nil
+	return issuer.LoadSigningKey(path)
 }
 
 type discoveryDocument struct {
@@ -187,35 +170,16 @@ func parseJWTHeader(token string) (string, error) {
 	return header.KeyID, nil
 }
 
-func signBrokerJWT(key brokerKey, issuer, subject, audience, csrFingerprint string, sans []string, now time.Time) (string, error) {
-	payload, err := json.Marshal(map[string]any{
-		"iss":  issuer,
-		"sub":  subject,
-		"aud":  audience,
-		"iat":  now.Unix(),
-		"nbf":  now.Add(-30 * time.Second).Unix(),
-		"exp":  now.Add(2 * time.Minute).Unix(),
-		"jti":  randomTokenID(),
-		"sans": sans,
-		"cnf":  map[string]string{"x5rt#S256": csrFingerprint},
-	})
-	if err != nil {
-		return "", err
-	}
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.ES256, Key: key.PrivateKey}, (&jose.SignerOptions{}).WithType("JWT").WithHeader(jose.HeaderKey("kid"), key.KeyID))
-	if err != nil {
-		return "", err
-	}
-	signed, err := signer.Sign(payload)
-	if err != nil {
-		return "", err
-	}
-	return signed.CompactSerialize()
+func signBrokerJWT(key brokerKey, provisioner, subject, audience, csrFingerprint string, sans []string, now time.Time) (string, error) {
+	return issuer.SignOneTimeToken(key, provisioner, subject, audience, csrFingerprint, sans, now)
 }
 
 func csrFingerprint(rawCSR []byte) string {
-	digest := sha256.Sum256(rawCSR)
-	return base64.RawURLEncoding.EncodeToString(digest[:])
+	return issuer.CSRFingerprint(rawCSR)
+}
+
+func parseApprovedCSR(rawPEM string, identity Identity) (*x509.CertificateRequest, error) {
+	return issuer.ParseApprovedCSR(rawPEM, identity.Subject, identity.URISAN)
 }
 
 func decodeJSONSegment(segment string, target any) error {
@@ -224,12 +188,4 @@ func decodeJSONSegment(segment string, target any) error {
 		return err
 	}
 	return json.Unmarshal(decoded, target)
-}
-
-func randomTokenID() string {
-	bytes := make([]byte, 32)
-	if _, err := rand.Read(bytes); err != nil {
-		panic("secure random source failed: " + err.Error())
-	}
-	return base64.RawURLEncoding.EncodeToString(bytes)
 }

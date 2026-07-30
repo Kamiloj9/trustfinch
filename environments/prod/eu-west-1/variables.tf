@@ -62,6 +62,40 @@ variable "gitlab_oidc" {
   }
 }
 
+variable "iam_sigv4" {
+  type = object({
+    lambda_image                = string
+    broker_jwk_secret_arn       = string
+    ca_tls_root_certificate_pem = string
+    broker_jwk_public = object({
+      kty = string
+      crv = string
+      x   = string
+      y   = string
+      kid = string
+    })
+    identities = list(object({
+      role_arn = string
+      subject  = string
+      uri_san  = string
+    }))
+  })
+  description = "Optional API Gateway AWS_IAM enrollment. Only SigV4-authenticated assumed roles explicitly mapped to a fixed SPIFFE identity can obtain certificates."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.iam_sigv4 == null || (
+      can(regex("^.+@sha256:[0-9a-f]{64}$", var.iam_sigv4.lambda_image)) &&
+      var.iam_sigv4.broker_jwk_public.kty == "EC" &&
+      var.iam_sigv4.broker_jwk_public.crv == "P-256" &&
+      length(var.iam_sigv4.identities) > 0 &&
+      alltrue([for identity in var.iam_sigv4.identities : can(regex("^arn:(aws|aws-us-gov|aws-cn):iam::[0-9]{12}:role/.+$", identity.role_arn)) && can(regex("^spiffe://", identity.uri_san))])
+    )
+    error_message = "IAM SigV4 enrollment requires a digest-pinned arm64 Lambda image, P-256 public JWK, and explicit IAM role-to-SPIFFE mappings."
+  }
+}
+
 variable "aws_iid_accounts" {
   type    = list(string)
   default = []

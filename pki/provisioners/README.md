@@ -34,3 +34,11 @@ issue-workload-certificate:
 The private P-256 JWK belongs in the referenced Secrets Manager secret as a raw JWK JSON value. Terraform stores only its public JWK in the `step-ca` provisioner. Build `broker/Dockerfile`, publish it to the target region's registry, then copy the immutable image digest into `gitlab_oidc.broker_image`. The runtime instance profile can read only that secret and the broker can conditionally claim, then (only if the downstream CA call fails) delete, its own token-ID record in the regional replay table.
 
 Use a distinct broker JWK and audience in each region. This prevents a token minted for EU Central from being replayed against EU West; Route 53 endpoint failover does not make a regional GitLab enrollment token portable.
+
+## AWS IAM SigV4 enrollment broker
+
+Set the optional `iam_sigv4` object only for a reviewed workload role. Terraform creates an API Gateway HTTP API with a single `POST /1.0/enroll/iam` route using `AWS_IAM`; callers must SigV4-sign the request and have the exact emitted `execute-api:Invoke` policy. API Gateway validates the signature before the Lambda broker runs.
+
+The Lambda accepts only the authenticated temporary `assumed-role` ARN exposed by API Gateway, normalizes it to the configured IAM role ARN, and rejects IAM users, federated principals, unreviewed roles, malformed requests, and every CSR except the role's exact common name and SPIFFE URI SAN. It turns that approved request into a two-minute CSR-bound JWK token for `step-ca`; the private P-256 JWK exists only in the referenced Secrets Manager secret.
+
+Build `broker/iam-lambda.Dockerfile` for `linux/arm64` with provenance disabled, publish it to the region's ECR registry, and configure the immutable digest. The Lambda has a hard concurrency limit, can read only its own public configuration object and signing-key secret, and cannot sign with the CA KMS key. Keep a distinct JWK per region. Leave `ca_tls_root_certificate_pem` empty when the CA endpoint has a public Web-PKI certificate; otherwise supply only the public TLS trust root needed for Lambda-to-CA verification.

@@ -22,3 +22,13 @@ output "ca_dns_name" {
   value       = module.dns.record_fqdn
   description = "Route 53 record if this module owns DNS."
 }
+
+output "iam_enrollment_endpoint" {
+  value       = try(module.iam_enrollment_gateway[0].api_endpoint, null)
+  description = "SigV4-only IAM enrollment endpoint when iam_sigv4 is enabled."
+}
+
+output "iam_enrollment_invoke_policy_json" {
+  value       = try(module.iam_enrollment_gateway[0].invoke_policy_json, null)
+  description = "Attach only to IAM roles explicitly approved in iam_sigv4.identities."
+}

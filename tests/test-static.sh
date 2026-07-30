@@ -91,6 +91,12 @@ rg --quiet 'attribute_not_exists\(jti\)' broker/internal/enrollment/replay.go \
   || fail "GitLab enrollment must atomically reject replayed token IDs"
 rg --quiet 'ref_protected' broker/internal/enrollment/jwt.go \
   || fail "GitLab enrollment must check protected refs"
+rg --quiet 'authorization_type = "AWS_IAM"' modules/iam-enrollment-gateway/main.tf \
+  || fail "IAM enrollment must require API Gateway AWS_IAM authorization"
+rg --quiet 'NormalizeAssumedRoleARN' broker/internal/iam/config.go \
+  || fail "IAM enrollment must normalize only trusted assumed-role ARNs"
+rg --quiet 'execute-api:Invoke' modules/iam-enrollment-gateway/main.tf \
+  || fail "IAM enrollment must emit a least-privilege caller invoke policy"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"

@@ -65,6 +65,17 @@ module "gitlab_enrollment_replay" {
   tags              = local.tags
 }
 
+module "iam_enrollment_gateway" {
+  count  = var.iam_sigv4 == null ? 0 : 1
+  source = "../../../modules/iam-enrollment-gateway"
+
+  name               = var.name
+  lambda_image_uri   = try(var.iam_sigv4.lambda_image, "")
+  jwk_secret_arn     = try(var.iam_sigv4.broker_jwk_secret_arn, "")
+  broker_config_json = local.iam_broker_config_json
+  tags               = local.tags
+}
+
 module "postgres" {
   source = "../../../modules/postgres"
 
@@ -169,6 +180,16 @@ locals {
         disableRenewal         = true
       }
     }],
+    var.iam_sigv4 == null ? [] : [{
+      type = "JWK"
+      name = "IAM Enrollment Broker"
+      key  = var.iam_sigv4.broker_jwk_public
+      claims = {
+        maxTLSCertDuration     = "1h"
+        defaultTLSCertDuration = "1h"
+        disableRenewal         = true
+      }
+    }],
   )
 
   gitlab_broker_config_json = var.gitlab_oidc == null ? null : jsonencode({
@@ -182,6 +203,16 @@ locals {
     max_gitlab_token_lifetime = "1h"
     identities                = var.gitlab_oidc.identities
   })
+
+  iam_broker_config_json = var.iam_sigv4 == null ? null : jsonencode(merge({
+    ca_url                  = "https://${var.ca_fqdn}"
+    ca_server_name          = var.ca_fqdn
+    ca_sign_audience        = "https://${var.ca_fqdn}/1.0/sign#IAM%20Enrollment%20Broker:${var.iam_sigv4.broker_jwk_public.kid}"
+    broker_provisioner_name = "IAM Enrollment Broker"
+    identities              = var.iam_sigv4.identities
+    }, var.iam_sigv4.ca_tls_root_certificate_pem == "" ? {} : {
+    ca_root_certificate_pem = var.iam_sigv4.ca_tls_root_certificate_pem
+  }))
 
   ca_json = templatefile("${path.module}/../../../pki/config/ca-ha.json.tftpl", {
     aws_region           = var.aws_region
