@@ -17,6 +17,7 @@ The Lean profile does not claim production HA or multi-region recovery. The prod
 - A passive-revocation runbook and local acceptance check proving revocation blocks future renewal within the short certificate lifetime.
 - A tested runtime log boundary that redacts one-time enrollment tokens before logs reach CloudWatch.
 - CloudWatch metrics and alarms for issuance by provisioner, CA errors/signing latency, root use, intermediate KMS failures and volume, HA target health, RDS capacity, and runtime disk use.
+- GitLab CI deployment roles that exchange a GitLab ID token for a one-hour AWS STS session, with distinct branch-plan and deployment-tag apply roles.
 - Acceptance checks that run with Docker on a developer machine: `make test`.
 
 ## Start here
@@ -44,3 +45,4 @@ This runs Terraform formatting and validation in a pinned Terraform container, t
 - Google, GitLab, EC2 IID, ACME, IAM-broker, HA, and multi-region provisioners are rollout stages, not values to copy into a permissive initial CA config. Add each only with its negative tests and an approved identity-to-SAN rule.
 
 See [runbooks/deployment.md](runbooks/deployment.md) for the exact rollout order.
+For recurring GitLab deployment access, use [the GitLab Terraform OIDC runbook](runbooks/gitlab-terraform-oidc.md); it deliberately has no static AWS-key fallback.

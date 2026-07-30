@@ -8,6 +8,7 @@
 6. Immediately apply with `root_key_enabled = false`. Verify a root `kms:Sign` CloudTrail event reaches the alarm path. Record the time and change ticket.
 7. Let the EC2 systemd service fetch the runtime configuration and public certificates. Verify `https://<ca_fqdn>/health` and validate the root fingerprint through an independent trusted channel.
 8. Add exactly one provisioner only after its identity matrix row and negative tests are approved. Do not begin with Google/GitLab/EC2/IAM broker simultaneously.
+9. Before allowing GitLab to plan or deploy, follow the [GitLab Terraform OIDC runbook](gitlab-terraform-oidc.md). The initial account bootstrap may use only a human short-lived role; recurring CI access must use GitLab ID tokens through AWS STS.
 
 ## Safety checks
 
@@ -15,3 +16,4 @@
 - Never put a provisioner password, OIDC client secret, AWS access key, or a CA private key in `*.tfvars`, user data, logs, Git, or the artifact bucket.
 - The default public `0.0.0.0/0` ingress value is a deliberate PoC convenience. Narrow it to VPN/NAT CIDRs for a private CA endpoint before production.
 - `root_key_enabled=true` is an emergency-sensitive value. A plan that changes it must be reviewed as a ceremony change.
+- Do not configure static AWS access keys in GitLab. The deployment pipeline accepts only an AWS web-identity token and a role ARN.

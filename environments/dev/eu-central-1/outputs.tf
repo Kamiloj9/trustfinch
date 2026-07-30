@@ -33,6 +33,16 @@ output "iam_enrollment_invoke_policy_json" {
   description = "Attach only to IAM roles explicitly approved in iam_sigv4.identities."
 }
 
+output "gitlab_terraform_plan_role_arn" {
+  value       = try(module.gitlab_terraform_deployment[0].plan_role_arn, null)
+  description = "Protected GitLab CI variable value for the Terraform plan job when GitLab deployment OIDC is enabled."
+}
+
+output "gitlab_terraform_apply_role_arn" {
+  value       = try(module.gitlab_terraform_deployment[0].apply_role_arn, null)
+  description = "Protected GitLab CI variable value for the Terraform apply job when GitLab deployment OIDC is enabled."
+}
+
 output "ca_state_backup_vault" {
   value       = module.backup.vault_name
   description = "AWS Backup vault with daily recovery points for the Lean CA issuance-state volume."

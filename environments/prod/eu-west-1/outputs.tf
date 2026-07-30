@@ -27,3 +27,13 @@ output "iam_enrollment_invoke_policy_json" {
   value       = try(module.iam_enrollment_gateway[0].invoke_policy_json, null)
   description = "Attach only to IAM roles explicitly approved in iam_sigv4.identities."
 }
+
+output "gitlab_terraform_plan_role_arn" {
+  value       = try(module.gitlab_terraform_deployment[0].plan_role_arn, null)
+  description = "Protected GitLab CI variable value for the Terraform plan job when GitLab deployment OIDC is enabled."
+}
+
+output "gitlab_terraform_apply_role_arn" {
+  value       = try(module.gitlab_terraform_deployment[0].apply_role_arn, null)
+  description = "Protected GitLab CI variable value for the Terraform apply job when GitLab deployment OIDC is enabled."
+}

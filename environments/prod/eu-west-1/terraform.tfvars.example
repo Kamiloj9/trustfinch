@@ -35,6 +35,25 @@ certificate_publisher_role_arns = ["arn:aws:iam::111122223333:role/pki-root-cere
 #     ref_type = "branch", ref = "main", subject = "gitlab:platform/pki", uri_san = "spiffe://example.internal/gitlab/platform/pki"
 #   }]
 # }
+# Optional: GitLab CI deploys through short-lived AWS STS credentials only.
+# Define the named policies and permission boundary in the account baseline;
+# they must be customer-managed and scoped to this environment. Protect main
+# and the named deployment tag in GitLab before enabling these roles. GitLab.com
+# supports project_id and ref_protected as IAM condition keys; omit unsupported
+# claims for self-managed GitLab, but retain the exact subject and audience.
+# gitlab_terraform_deployment = {
+#   oidc_provider_arn        = "arn:aws:iam::111122223333:oidc-provider/gitlab.com"
+#   oidc_provider_url        = "https://gitlab.com"
+#   audience                 = "sts.amazonaws.com"
+#   plan_subjects            = ["project_path:platform/pki:ref_type:branch:ref:main"]
+#   apply_subjects           = ["project_path:platform/pki:ref_type:tag:ref:deploy-prod-euw1"]
+#   plan_additional_claims   = { project_id = ["12345"], ref_protected = ["true"] }
+#   apply_additional_claims  = { project_id = ["12345"], ref_protected = ["true"] }
+#   plan_policy_arns         = ["arn:aws:iam::111122223333:policy/pki-prod-euw1-terraform-plan"]
+#   apply_policy_arns        = ["arn:aws:iam::111122223333:policy/pki-prod-euw1-terraform-apply"]
+#   permissions_boundary_arn = "arn:aws:iam::111122223333:policy/pki-terraform-boundary"
+# }
+
 # Keep the IAM broker key and Lambda image region-specific. API Gateway accepts
 # only SigV4 requests from a role with the emitted exact invoke policy.
 # iam_sigv4 = {

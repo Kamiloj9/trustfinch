@@ -1,0 +1,126 @@
+stages:
+  - validate
+  - plan
+  - apply
+
+default:
+  image:
+    name: hashicorp/terraform@sha256:6bbb82d575aa7bd4f0a2c6e3a0838ab9590426c08a71d7a2783643f01004d356
+    entrypoint: [""]
+
+variables:
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+terraform:format:
+  stage: validate
+  script:
+    - terraform fmt -check -recursive
+
+.terraform:aws-oidc:
+  id_tokens:
+    GITLAB_AWS_OIDC_TOKEN:
+      aud: sts.amazonaws.com
+  before_script:
+    - |
+      case "${TF_ROOT}:${TF_ROLE_MODE}" in
+        environments/dev/eu-central-1:plan)
+          CI_AWS_ROLE_ARN="${PKI_DEV_TERRAFORM_PLAN_ROLE_ARN:?}"
+          PKI_BACKEND_HCL="${PKI_DEV_TERRAFORM_BACKEND_HCL:?}"
+          ;;
+        environments/dev/eu-central-1:apply)
+          CI_AWS_ROLE_ARN="${PKI_DEV_TERRAFORM_APPLY_ROLE_ARN:?}"
+          PKI_BACKEND_HCL="${PKI_DEV_TERRAFORM_BACKEND_HCL:?}"
+          ;;
+        environments/prod/eu-central-1:plan)
+          CI_AWS_ROLE_ARN="${PKI_PROD_EUC1_TERRAFORM_PLAN_ROLE_ARN:?}"
+          PKI_BACKEND_HCL="${PKI_PROD_EUC1_TERRAFORM_BACKEND_HCL:?}"
+          ;;
+        environments/prod/eu-central-1:apply)
+          CI_AWS_ROLE_ARN="${PKI_PROD_EUC1_TERRAFORM_APPLY_ROLE_ARN:?}"
+          PKI_BACKEND_HCL="${PKI_PROD_EUC1_TERRAFORM_BACKEND_HCL:?}"
+          ;;
+        environments/prod/eu-west-1:plan)
+          CI_AWS_ROLE_ARN="${PKI_PROD_EUW1_TERRAFORM_PLAN_ROLE_ARN:?}"
+          PKI_BACKEND_HCL="${PKI_PROD_EUW1_TERRAFORM_BACKEND_HCL:?}"
+          ;;
+        environments/prod/eu-west-1:apply)
+          CI_AWS_ROLE_ARN="${PKI_PROD_EUW1_TERRAFORM_APPLY_ROLE_ARN:?}"
+          PKI_BACKEND_HCL="${PKI_PROD_EUW1_TERRAFORM_BACKEND_HCL:?}"
+          ;;
+        *)
+          printf '%s\n' "unsupported Terraform environment or role mode: ${TF_ROOT}:${TF_ROLE_MODE}" >&2
+          exit 1
+          ;;
+      esac
+    - 'test -n "${CI_AWS_ROLE_ARN:-}"'
+    - 'test -r "${PKI_BACKEND_HCL:-}"'
+    - 'umask 077; printf "%s" "$GITLAB_AWS_OIDC_TOKEN" > "$CI_PROJECT_DIR/.gitlab-aws-oidc-token"'
+    - 'cp "$PKI_BACKEND_HCL" "$TF_ROOT/backend.hcl"'
+    - 'export AWS_ROLE_ARN="$CI_AWS_ROLE_ARN"'
+    - 'export AWS_WEB_IDENTITY_TOKEN_FILE="$CI_PROJECT_DIR/.gitlab-aws-oidc-token"'
+  after_script:
+    - 'rm -f "$CI_PROJECT_DIR/.gitlab-aws-oidc-token" "$TF_ROOT/backend.hcl"'
+
+.terraform:plan:
+  extends: .terraform:aws-oidc
+  stage: plan
+  variables:
+    TF_ROLE_MODE: plan
+  script:
+    - cd "$TF_ROOT"
+    - terraform init -backend-config=backend.hcl -input=false
+    - terraform plan -input=false -lock-timeout=5m
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+
+.terraform:apply:
+  extends: .terraform:aws-oidc
+  stage: apply
+  variables:
+    TF_ROLE_MODE: apply
+  script:
+    - cd "$TF_ROOT"
+    - terraform init -backend-config=backend.hcl -input=false
+    - terraform apply -input=false -auto-approve -lock-timeout=5m
+  rules:
+    - if: '$CI_COMMIT_TAG'
+      when: manual
+      allow_failure: false
+    - when: never
+
+terraform:plan:dev-euc1:
+  extends: .terraform:plan
+  variables:
+    TF_ROOT: environments/dev/eu-central-1
+
+terraform:apply:dev-euc1:
+  extends: .terraform:apply
+  variables:
+    TF_ROOT: environments/dev/eu-central-1
+  environment:
+    name: development
+
+terraform:plan:prod-euc1:
+  extends: .terraform:plan
+  variables:
+    TF_ROOT: environments/prod/eu-central-1
+
+terraform:apply:prod-euc1:
+  extends: .terraform:apply
+  variables:
+    TF_ROOT: environments/prod/eu-central-1
+  environment:
+    name: production/eu-central-1
+
+terraform:plan:prod-euw1:
+  extends: .terraform:plan
+  variables:
+    TF_ROOT: environments/prod/eu-west-1
+
+terraform:apply:prod-euw1:
+  extends: .terraform:apply
+  variables:
+    TF_ROOT: environments/prod/eu-west-1
+  environment:
+    name: production/eu-west-1

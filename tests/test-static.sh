@@ -203,6 +203,29 @@ for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 
   rg --quiet 'runtime/step-ca/redact-step-ca-logs\.sh' "${environment}/main.tf" \
     || fail "runtime must publish the log redactor: ${environment}"
 done
+rg --quiet 'sts:AssumeRoleWithWebIdentity' modules/gitlab-terraform-oidc/main.tf \
+  || fail "GitLab Terraform roles must use web-identity STS"
+rg --quiet 'StringEquals' modules/gitlab-terraform-oidc/main.tf \
+  || fail "GitLab Terraform trust must use exact claim matching"
+rg --quiet 'max_session_duration\s*=\s*3600' modules/gitlab-terraform-oidc/main.tf \
+  || fail "GitLab Terraform sessions must be limited to one hour"
+rg --quiet 'permissions_boundary' modules/gitlab-terraform-oidc/main.tf \
+  || fail "GitLab Terraform roles must have a permission boundary"
+rg --quiet 'id_tokens:' .gitlab-ci.yml \
+  || fail "GitLab pipeline must request an ID token"
+rg --quiet 'aud: sts.amazonaws.com' .gitlab-ci.yml \
+  || fail "GitLab pipeline ID token must target AWS STS"
+rg --quiet 'AWS_WEB_IDENTITY_TOKEN_FILE' .gitlab-ci.yml \
+  || fail "GitLab pipeline must use the standard AWS web-identity token file"
+rg --quiet 'when: manual' .gitlab-ci.yml \
+  || fail "GitLab Terraform apply must require an explicit manual action"
+if rg --glob '.gitlab-ci.yml' --quiet 'AWS_(ACCESS_KEY_ID|SECRET_ACCESS_KEY)\s*:'; then
+  fail "GitLab pipeline must not define static AWS access keys"
+fi
+for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
+  rg --quiet 'gitlab_terraform_deployment' "${environment}/main.tf" \
+    || fail "GitLab Terraform deployment roles must be available in ${environment}"
+done
 bash -n pki/runtime/step-ca-entrypoint.sh pki/runtime/redact-step-ca-logs.sh \
   || fail "step-ca log-boundary scripts must have valid Bash syntax"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do

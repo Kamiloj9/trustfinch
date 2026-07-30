@@ -62,6 +62,35 @@ variable "gitlab_oidc" {
   }
 }
 
+variable "gitlab_terraform_deployment" {
+  type = object({
+    oidc_provider_arn        = string
+    oidc_provider_url        = string
+    audience                 = string
+    plan_subjects            = list(string)
+    apply_subjects           = list(string)
+    plan_additional_claims   = map(list(string))
+    apply_additional_claims  = map(list(string))
+    plan_policy_arns         = list(string)
+    apply_policy_arns        = list(string)
+    permissions_boundary_arn = string
+  })
+  description = "Optional GitLab CI deployment roles. Both roles use AWS STS web identity; apply is reserved for separate protected deployment tags."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.gitlab_terraform_deployment == null || (
+      var.gitlab_terraform_deployment.audience == "sts.amazonaws.com" &&
+      length(var.gitlab_terraform_deployment.plan_subjects) > 0 &&
+      length(var.gitlab_terraform_deployment.apply_subjects) > 0 &&
+      alltrue([for subject in var.gitlab_terraform_deployment.plan_subjects : can(regex("^project_(path|id):[^:*]+:ref_type:branch:ref:[^:*]+$", subject))]) &&
+      alltrue([for subject in var.gitlab_terraform_deployment.apply_subjects : can(regex("^project_(path|id):[^:*]+:ref_type:tag:ref:[^:*]+$", subject))])
+    )
+    error_message = "GitLab Terraform deployment requires the STS audience, exact branch subjects for plans, and exact deployment-tag subjects for applies."
+  }
+}
+
 variable "iam_sigv4" {
   type = object({
     lambda_image                = string

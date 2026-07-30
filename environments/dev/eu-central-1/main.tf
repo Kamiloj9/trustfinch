@@ -85,6 +85,24 @@ module "gitlab_enrollment_replay" {
   tags              = local.tags
 }
 
+module "gitlab_terraform_deployment" {
+  count  = var.gitlab_terraform_deployment == null ? 0 : 1
+  source = "../../../modules/gitlab-terraform-oidc"
+
+  name                     = var.name
+  oidc_provider_arn        = var.gitlab_terraform_deployment.oidc_provider_arn
+  oidc_provider_url        = var.gitlab_terraform_deployment.oidc_provider_url
+  audience                 = var.gitlab_terraform_deployment.audience
+  plan_subjects            = var.gitlab_terraform_deployment.plan_subjects
+  apply_subjects           = var.gitlab_terraform_deployment.apply_subjects
+  plan_additional_claims   = var.gitlab_terraform_deployment.plan_additional_claims
+  apply_additional_claims  = var.gitlab_terraform_deployment.apply_additional_claims
+  plan_policy_arns         = var.gitlab_terraform_deployment.plan_policy_arns
+  apply_policy_arns        = var.gitlab_terraform_deployment.apply_policy_arns
+  permissions_boundary_arn = var.gitlab_terraform_deployment.permissions_boundary_arn
+  tags                     = local.tags
+}
+
 module "iam_enrollment_gateway" {
   count  = var.iam_sigv4 == null ? 0 : 1
   source = "../../../modules/iam-enrollment-gateway"
