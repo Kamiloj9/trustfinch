@@ -103,6 +103,12 @@ rg --quiet 'resources\s*=\s*var\.resource_arns' modules/backup/main.tf \
   || fail "Lean CA-state backup must use an explicit resource selection"
 rg --quiet 'AWSBackupServiceRolePolicyForRestores' modules/backup/main.tf \
   || fail "Lean CA-state backup role must support the documented restore workflow"
+rg --quiet '^test:.*test-recovery' Makefile \
+  || fail "all local checks must include the CA state recovery exercise"
+rg --quiet 'test-local-recovery.sh' Makefile \
+  || fail "the recovery test target must execute the CA state recovery exercise"
+rg --quiet 'recovered CA accepted renewal' tests/test-local-recovery.sh \
+  || fail "local CA recovery must prove pre-backup revocation state is restored"
 rg --quiet 'NumberOfBackupJobsFailed' modules/backup/main.tf \
   || fail "Lean CA-state backup failures must alert"
 rg --quiet 'state_volume_id' modules/step-ca-ec2/outputs.tf \

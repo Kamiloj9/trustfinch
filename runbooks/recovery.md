@@ -4,6 +4,8 @@
 
 The Lean profile can restore the CA runtime and issuance state after a host failure. It is not HA: issuance is unavailable during restore. Agree RTO/RPO before using it beyond a PoC.
 
+`make test-recovery` is the Docker-only acceptance exercise. It creates a disposable CA, revokes a certificate, snapshots the named state volume, destroys the original volume, restores the snapshot into a clean replacement volume, and proves both that the root fingerprint is unchanged and that the pre-backup revocation is still enforced. It is evidence for the state-recovery mechanics, not a substitute for an AWS Backup restore rehearsal or a measured production RTO/RPO.
+
 ## Recover a lost host
 
 1. Isolate the failed instance and preserve its forensic evidence. Do not reuse its EBS volume before the incident decision.
