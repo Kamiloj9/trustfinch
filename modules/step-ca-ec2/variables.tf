@@ -62,6 +62,30 @@ variable "certificate_publisher_role_arns" {
   default     = []
 }
 
+variable "artifact_verification_enabled" {
+  type        = bool
+  description = "Require a KMS-signed manifest before the runtime accepts S3 artifacts."
+  default     = false
+}
+
+variable "artifact_signing_public_key_pem" {
+  type        = string
+  description = "Public PEM key for detached runtime-artifact manifest verification."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.artifact_signing_public_key_pem == null || can(regex("BEGIN PUBLIC KEY", var.artifact_signing_public_key_pem))
+    error_message = "artifact_signing_public_key_pem must be a PEM public key when set."
+  }
+}
+
+variable "artifact_signer_role_arns" {
+  type        = list(string)
+  description = "Release signer roles permitted to read artifacts and publish only their signed manifest files."
+  default     = []
+}
+
 variable "tags" {
   type        = map(string)
   description = "Tags applied to all resources."

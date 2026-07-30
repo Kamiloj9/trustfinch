@@ -174,6 +174,10 @@ for runtime_template in modules/step-ca-ec2/templates/pki-runtime.service.tftpl 
     || fail "PKI runtime must install the CloudWatch Agent: ${runtime_template}"
   rg --quiet 'PKIName' "${runtime_template}" \
     || fail "PKI host metrics must be rolled up by PKI name: ${runtime_template}"
+  rg --quiet 'pki-verify-runtime-artifacts' "${runtime_template}" \
+    || fail "PKI runtime must embed the artifact manifest verifier: ${runtime_template}"
+  rg --quiet 'findutils' "${runtime_template}" \
+    || fail "PKI runtime must install findutils for fail-closed artifact inventory checks: ${runtime_template}"
 done
 rg --quiet 'CloudWatchAgentServerPolicy' modules/step-ca-ec2/main.tf \
   || fail "Lean runtime must authorize CloudWatch Agent metrics"
@@ -225,8 +229,28 @@ fi
 for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
   rg --quiet 'gitlab_terraform_deployment' "${environment}/main.tf" \
     || fail "GitLab Terraform deployment roles must be available in ${environment}"
+  rg --quiet 'runtime_artifact_signing' "${environment}/main.tf" \
+    || fail "KMS runtime-artifact signing must be available in ${environment}"
 done
-bash -n pki/runtime/step-ca-entrypoint.sh pki/runtime/redact-step-ca-logs.sh \
+rg --quiet 'ApprovedReleaseSignersOnly' modules/runtime-artifact-signing/main.tf \
+  || fail "runtime artifact KMS key must restrict signing to approved release roles"
+rg --quiet 'ECDSA_SHA_256' modules/runtime-artifact-signing/main.tf \
+  || fail "runtime artifact KMS key must restrict signing algorithm"
+rg --quiet 'setintersection' modules/runtime-artifact-signing/main.tf \
+  || fail "runtime artifact release signers must be distinct from key administrators"
+rg --quiet 'ReleaseSignerPublishesSignedManifestOnly' modules/step-ca-ec2/main.tf \
+  || fail "Lean artifact bucket must limit signer writes to manifest files"
+rg --quiet 'ReleaseSignerPublishesSignedManifestOnly' modules/step-ca-ha/main.tf \
+  || fail "HA artifact bucket must limit signer writes to manifest files"
+rg --quiet 'runtime.manifest.sig' pki/runtime/verify-runtime-artifacts.sh \
+  || fail "runtime verifier must require a detached signature"
+rg --quiet 'unmanifested runtime artifact' pki/runtime/verify-runtime-artifacts.sh \
+  || fail "runtime verifier must reject unmanifested files"
+for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
+  rg --quiet 'runtime_artifact_signing_guard' "${environment}/main.tf" \
+    || fail "runtime artifact signing must reject a self-signing runtime role in ${environment}"
+done
+bash -n pki/runtime/step-ca-entrypoint.sh pki/runtime/redact-step-ca-logs.sh pki/runtime/verify-runtime-artifacts.sh ceremony/sign-runtime-artifacts.sh \
   || fail "step-ca log-boundary scripts must have valid Bash syntax"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \

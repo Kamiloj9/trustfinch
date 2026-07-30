@@ -54,6 +54,16 @@ certificate_publisher_role_arns = ["arn:aws:iam::111122223333:role/pki-root-cere
 #   permissions_boundary_arn = "arn:aws:iam::111122223333:policy/pki-terraform-boundary"
 # }
 
+# Required before production traffic: use a distinct regional KMS key to sign
+# the complete runtime S3 payload. Bootstrap with verification_enabled = false,
+# sign it with ceremony/sign-runtime-artifacts.sh and the emitted key ID, then
+# set verification_enabled = true in a separate reviewed rollout.
+# runtime_artifact_signing = {
+#   key_administrator_arns    = ["arn:aws:iam::111122223333:role/pki-artifact-key-administrator"]
+#   artifact_signer_role_arns = ["arn:aws:iam::111122223333:role/pki-runtime-release-signer"]
+#   verification_enabled      = false
+# }
+
 # Keep the IAM broker key and Lambda image region-specific. API Gateway accepts
 # only SigV4 requests from a role with the emitted exact invoke policy.
 # iam_sigv4 = {

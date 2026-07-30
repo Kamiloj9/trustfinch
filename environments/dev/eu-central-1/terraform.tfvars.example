@@ -53,6 +53,16 @@ backup_retention_days = 35
 #   permissions_boundary_arn = "arn:aws:iam::111122223333:policy/pki-terraform-boundary"
 # }
 
+# Optional: use a distinct KMS key to sign the complete runtime S3 payload.
+# Bootstrap with verification_enabled = false, use the emitted key ID with
+# ceremony/sign-runtime-artifacts.sh, then turn it true in a second reviewed
+# apply. The signer must never be the EC2 runtime role or a CA ceremony role.
+# runtime_artifact_signing = {
+#   key_administrator_arns    = ["arn:aws:iam::111122223333:role/pki-artifact-key-administrator"]
+#   artifact_signer_role_arns = ["arn:aws:iam::111122223333:role/pki-runtime-release-signer"]
+#   verification_enabled      = false
+# }
+
 # Optional: API Gateway verifies SigV4 before Lambda receives the trusted IAM
 # context. Build broker/iam-lambda.Dockerfile for linux/arm64, publish it to
 # ECR by immutable digest, and attach the emitted invoke-policy output only to

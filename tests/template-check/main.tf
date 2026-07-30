@@ -50,21 +50,38 @@ locals {
   })
 
   lean_runtime_bootstrap = templatefile("${path.module}/../../modules/step-ca-ec2/templates/pki-runtime.service.tftpl", {
-    artifact_bucket               = "pki-test-artifacts"
-    cloudwatch_log_group_name     = "/pki/test/runtime"
-    google_oidc_client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
-    gitlab_broker_jwk_secret_arn  = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker"
-    pki_name                      = "pki-test"
+    artifact_bucket                 = "pki-test-artifacts"
+    artifact_verification_enabled   = false
+    artifact_signing_public_key_pem = ""
+    artifact_verifier_script        = file("${path.module}/../../pki/runtime/verify-runtime-artifacts.sh")
+    cloudwatch_log_group_name       = "/pki/test/runtime"
+    google_oidc_client_secret_arn   = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
+    gitlab_broker_jwk_secret_arn    = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker"
+    pki_name                        = "pki-test"
+  })
+
+  verified_lean_runtime_bootstrap = templatefile("${path.module}/../../modules/step-ca-ec2/templates/pki-runtime.service.tftpl", {
+    artifact_bucket                 = "pki-test-artifacts"
+    artifact_verification_enabled   = true
+    artifact_signing_public_key_pem = "-----BEGIN PUBLIC KEY-----\ntest-key\n-----END PUBLIC KEY-----"
+    artifact_verifier_script        = file("${path.module}/../../pki/runtime/verify-runtime-artifacts.sh")
+    cloudwatch_log_group_name       = "/pki/test/runtime"
+    google_oidc_client_secret_arn   = ""
+    gitlab_broker_jwk_secret_arn    = ""
+    pki_name                        = "pki-test"
   })
 
   ha_runtime_bootstrap = templatefile("${path.module}/../../modules/step-ca-ha/templates/pki-runtime-ha.service.tftpl", {
-    artifact_bucket               = "pki-test-artifacts"
-    aws_region                    = "eu-central-1"
-    database_secret_arn           = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:rds"
-    google_oidc_client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
-    gitlab_broker_jwk_secret_arn  = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker"
-    runtime_release_id            = "test-release"
-    pki_name                      = "pki-test"
+    artifact_bucket                 = "pki-test-artifacts"
+    artifact_verification_enabled   = false
+    artifact_signing_public_key_pem = ""
+    artifact_verifier_script        = file("${path.module}/../../pki/runtime/verify-runtime-artifacts.sh")
+    aws_region                      = "eu-central-1"
+    database_secret_arn             = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:rds"
+    google_oidc_client_secret_arn   = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
+    gitlab_broker_jwk_secret_arn    = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker"
+    runtime_release_id              = "test-release"
+    pki_name                        = "pki-test"
   })
 
   google_oidc_config = jsondecode(templatefile("${path.module}/../../pki/config/ca.json.tftpl", {
@@ -166,6 +183,8 @@ output "validated_template_fields" {
     acme_uses_acme_provisioner              = local.acme_config.authority.provisioners[0].type == "ACME"
     acme_has_restricted_dns_allowlist       = contains(local.acme_config.authority.policy.x509.allow.dns, "*.apps.test.example.internal")
     acme_ttl_is_limited                     = local.acme_config.authority.provisioners[0].claims.maxTLSCertDuration == "24h"
+    verified_runtime_embeds_public_key      = strcontains(local.verified_lean_runtime_bootstrap, "artifact-signing-public.pem")
+    verified_runtime_checks_manifest        = strcontains(local.verified_lean_runtime_bootstrap, "pki-verify-runtime-artifacts")
   }
 }
 
@@ -183,6 +202,10 @@ output "gitlab_broker_compose" {
 
 output "lean_runtime_bootstrap" {
   value = local.lean_runtime_bootstrap
+}
+
+output "verified_lean_runtime_bootstrap" {
+  value = local.verified_lean_runtime_bootstrap
 }
 
 output "ha_runtime_bootstrap" {

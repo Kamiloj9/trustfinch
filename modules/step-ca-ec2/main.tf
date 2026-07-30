@@ -166,6 +166,66 @@ data "aws_iam_policy_document" "artifact_bucket" {
       resources = ["${aws_s3_bucket.artifacts.arn}/runtime/certs/*.crt"]
     }
   }
+
+  dynamic "statement" {
+    for_each = length(var.artifact_signer_role_arns) == 0 ? [] : [1]
+
+    content {
+      sid    = "ReleaseSignerReadsRuntimeArtifacts"
+      effect = "Allow"
+
+      principals {
+        type        = "AWS"
+        identifiers = var.artifact_signer_role_arns
+      }
+
+      actions   = ["s3:GetObject"]
+      resources = ["${aws_s3_bucket.artifacts.arn}/runtime/*"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(var.artifact_signer_role_arns) == 0 ? [] : [1]
+
+    content {
+      sid    = "ReleaseSignerListsRuntimeArtifacts"
+      effect = "Allow"
+
+      principals {
+        type        = "AWS"
+        identifiers = var.artifact_signer_role_arns
+      }
+
+      actions   = ["s3:ListBucket"]
+      resources = [aws_s3_bucket.artifacts.arn]
+
+      condition {
+        test     = "StringLike"
+        variable = "s3:prefix"
+        values   = ["runtime/*"]
+      }
+    }
+  }
+
+  dynamic "statement" {
+    for_each = length(var.artifact_signer_role_arns) == 0 ? [] : [1]
+
+    content {
+      sid    = "ReleaseSignerPublishesSignedManifestOnly"
+      effect = "Allow"
+
+      principals {
+        type        = "AWS"
+        identifiers = var.artifact_signer_role_arns
+      }
+
+      actions = ["s3:PutObject"]
+      resources = [
+        "${aws_s3_bucket.artifacts.arn}/runtime/runtime.manifest",
+        "${aws_s3_bucket.artifacts.arn}/runtime/runtime.manifest.sig",
+      ]
+    }
+  }
 }
 
 resource "aws_s3_bucket_policy" "artifacts" {
@@ -231,12 +291,23 @@ resource "aws_instance" "runtime" {
   }
 
   user_data = templatefile("${path.module}/templates/pki-runtime.service.tftpl", {
-    artifact_bucket               = aws_s3_bucket.artifacts.id
-    cloudwatch_log_group_name     = var.cloudwatch_log_group_name
-    google_oidc_client_secret_arn = coalesce(var.google_oidc_client_secret_arn, "")
-    gitlab_broker_jwk_secret_arn  = coalesce(var.gitlab_broker_jwk_secret_arn, "")
-    pki_name                      = var.name
+    artifact_bucket                 = aws_s3_bucket.artifacts.id
+    artifact_verification_enabled   = var.artifact_verification_enabled
+    artifact_signing_public_key_pem = coalesce(var.artifact_signing_public_key_pem, "")
+    artifact_verifier_script        = file("${path.module}/../../pki/runtime/verify-runtime-artifacts.sh")
+    artifact_signer_role_arns       = var.artifact_signer_role_arns
+    cloudwatch_log_group_name       = var.cloudwatch_log_group_name
+    google_oidc_client_secret_arn   = coalesce(var.google_oidc_client_secret_arn, "")
+    gitlab_broker_jwk_secret_arn    = coalesce(var.gitlab_broker_jwk_secret_arn, "")
+    pki_name                        = var.name
   })
+
+  lifecycle {
+    precondition {
+      condition     = !var.artifact_verification_enabled || var.artifact_signing_public_key_pem != null
+      error_message = "artifact_signing_public_key_pem is required when artifact_verification_enabled is true."
+    }
+  }
 
   tags = merge(var.tags, {
     Name = "${var.name}-step-ca"

@@ -37,3 +37,8 @@ output "gitlab_terraform_apply_role_arn" {
   value       = try(module.gitlab_terraform_deployment[0].apply_role_arn, null)
   description = "Protected GitLab CI variable value for the Terraform apply job when GitLab deployment OIDC is enabled."
 }
+
+output "runtime_artifact_signing_key_id" {
+  value       = try(module.runtime_artifact_signing[0].key_id, null)
+  description = "Use only from the approved release signer role to sign the current runtime manifest."
+}

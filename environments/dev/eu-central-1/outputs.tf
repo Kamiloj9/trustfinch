@@ -43,6 +43,11 @@ output "gitlab_terraform_apply_role_arn" {
   description = "Protected GitLab CI variable value for the Terraform apply job when GitLab deployment OIDC is enabled."
 }
 
+output "runtime_artifact_signing_key_id" {
+  value       = try(module.runtime_artifact_signing[0].key_id, null)
+  description = "Use only from the approved release signer role to sign the current runtime manifest."
+}
+
 output "ca_state_backup_vault" {
   value       = module.backup.vault_name
   description = "AWS Backup vault with daily recovery points for the Lean CA issuance-state volume."

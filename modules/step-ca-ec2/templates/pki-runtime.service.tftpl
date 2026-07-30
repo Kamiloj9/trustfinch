@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-dnf install -y docker awscli2 python3 gettext amazon-cloudwatch-agent
+dnf install -y docker awscli2 python3 gettext openssl findutils amazon-cloudwatch-agent
 install -d -m 0755 /usr/local/lib/docker/cli-plugins
 curl --fail --silent --show-error --location \
   --output /usr/local/lib/docker/cli-plugins/docker-compose \
@@ -44,6 +44,18 @@ install -d -m 0750 /opt/pki/runtime /var/lib/step-ca
 # the only writable mount in its otherwise read-only container filesystem.
 chown 1000:1000 /var/lib/step-ca
 
+%{ if artifact_verification_enabled }
+install -d -m 0755 /usr/local/libexec /etc/pki/pki-runtime
+cat >/usr/local/libexec/pki-verify-runtime-artifacts <<'VERIFY_RUNTIME_ARTIFACTS'
+${artifact_verifier_script}
+VERIFY_RUNTIME_ARTIFACTS
+chmod 0755 /usr/local/libexec/pki-verify-runtime-artifacts
+cat >/etc/pki/pki-runtime/artifact-signing-public.pem <<'ARTIFACT_SIGNING_PUBLIC_KEY'
+${artifact_signing_public_key_pem}
+ARTIFACT_SIGNING_PUBLIC_KEY
+chmod 0644 /etc/pki/pki-runtime/artifact-signing-public.pem
+%{ endif }
+
 cat >/etc/systemd/system/pki-runtime.service <<'UNIT'
 [Unit]
 Description=Self-hosted PKI runtime
@@ -58,6 +70,9 @@ RestartSec=30
 TimeoutStartSec=0
 ExecStartPre=/usr/bin/mkdir -p /opt/pki/runtime /var/lib/step-ca
 ExecStartPre=/usr/bin/aws s3 sync s3://${artifact_bucket}/runtime /opt/pki/runtime --exact-timestamps
+%{ if artifact_verification_enabled }
+ExecStartPre=/usr/local/libexec/pki-verify-runtime-artifacts --runtime-dir /opt/pki/runtime --public-key /etc/pki/pki-runtime/artifact-signing-public.pem
+%{ endif }
 ExecStartPre=/usr/bin/bash -c 'secret_arn="${google_oidc_client_secret_arn}"; if [[ -n "$secret_arn" ]]; then GOOGLE_OIDC_CLIENT_SECRET="$(/usr/bin/aws secretsmanager get-secret-value --secret-id "$secret_arn" --query SecretString --output text | /usr/bin/python3 -c "import json,sys; print(json.load(sys.stdin)[\"client_secret\"], end=\"\")")" /usr/bin/envsubst < /opt/pki/runtime/step-ca/ca.json > /opt/pki/runtime/step-ca/rendered-ca.json; else cp /opt/pki/runtime/step-ca/ca.json /opt/pki/runtime/step-ca/rendered-ca.json; fi; chown 1000:1000 /opt/pki/runtime/step-ca/rendered-ca.json; chmod 0600 /opt/pki/runtime/step-ca/rendered-ca.json'
 ExecStartPre=/usr/bin/rm -f /opt/pki/runtime/secrets/gitlab-broker.jwk
 ExecStartPre=/usr/bin/bash -c 'secret_arn="${gitlab_broker_jwk_secret_arn}"; if [[ -n "$secret_arn" ]]; then /usr/bin/install -d -m 0700 /opt/pki/runtime/secrets && /usr/bin/aws secretsmanager get-secret-value --secret-id "$secret_arn" --query SecretString --output text > /opt/pki/runtime/secrets/gitlab-broker.jwk && /usr/bin/chown 65532:65532 /opt/pki/runtime/secrets/gitlab-broker.jwk && /usr/bin/chmod 0400 /opt/pki/runtime/secrets/gitlab-broker.jwk; fi'

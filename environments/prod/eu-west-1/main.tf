@@ -50,6 +50,9 @@ module "step_ca_ha" {
   enable_waf_rate_limit           = var.enable_waf_rate_limit
   waf_rate_limit                  = var.waf_rate_limit
   certificate_publisher_role_arns = var.certificate_publisher_role_arns
+  artifact_verification_enabled   = try(var.runtime_artifact_signing.verification_enabled, false)
+  artifact_signing_public_key_pem = try(module.runtime_artifact_signing[0].public_key_pem, null)
+  artifact_signer_role_arns       = try(var.runtime_artifact_signing.artifact_signer_role_arns, [])
   tags                            = local.tags
 }
 
@@ -112,6 +115,27 @@ module "kms_ca" {
   root_ceremony_role_arns         = []
   intermediate_ceremony_role_arns = var.intermediate_ceremony_role_arns
   tags                            = local.tags
+}
+
+module "runtime_artifact_signing" {
+  count  = var.runtime_artifact_signing == null ? 0 : 1
+  source = "../../../modules/runtime-artifact-signing"
+
+  name                      = var.name
+  key_administrator_arns    = var.runtime_artifact_signing.key_administrator_arns
+  artifact_signer_role_arns = var.runtime_artifact_signing.artifact_signer_role_arns
+  tags                      = local.tags
+}
+
+resource "terraform_data" "runtime_artifact_signing_guard" {
+  input = var.runtime_artifact_signing
+
+  lifecycle {
+    precondition {
+      condition     = var.runtime_artifact_signing == null || !contains(var.runtime_artifact_signing.artifact_signer_role_arns, module.step_ca_ha.runtime_role_arn)
+      error_message = "The HA step-ca runtime role must not sign its own runtime artifact manifest."
+    }
+  }
 }
 
 module "observability" {

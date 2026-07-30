@@ -91,6 +91,25 @@ variable "gitlab_terraform_deployment" {
   }
 }
 
+variable "runtime_artifact_signing" {
+  type = object({
+    key_administrator_arns    = list(string)
+    artifact_signer_role_arns = list(string)
+    verification_enabled      = bool
+  })
+  description = "Optional isolated KMS key and verifier for signed runtime artifact manifests. Enable verification only after the release manifest has been signed and uploaded."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.runtime_artifact_signing == null || (
+      length(var.runtime_artifact_signing.key_administrator_arns) > 0 &&
+      length(var.runtime_artifact_signing.artifact_signer_role_arns) > 0
+    )
+    error_message = "Runtime artifact signing needs separate key administrators and at least one release signer role."
+  }
+}
+
 variable "iam_sigv4" {
   type = object({
     lambda_image                = string

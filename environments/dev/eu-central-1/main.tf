@@ -59,6 +59,9 @@ module "step_ca_ec2" {
   cloudwatch_log_group_name       = aws_cloudwatch_log_group.runtime.name
   allowed_https_cidrs             = var.allowed_https_cidrs
   certificate_publisher_role_arns = var.certificate_publisher_role_arns
+  artifact_verification_enabled   = try(var.runtime_artifact_signing.verification_enabled, false)
+  artifact_signing_public_key_pem = try(module.runtime_artifact_signing[0].public_key_pem, null)
+  artifact_signer_role_arns       = try(var.runtime_artifact_signing.artifact_signer_role_arns, [])
   google_oidc_client_secret_arn   = try(var.google_oidc.client_secret_arn, null)
   gitlab_broker_jwk_secret_arn    = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
   tags                            = local.tags
@@ -124,6 +127,27 @@ module "kms_ca" {
   intermediate_ceremony_role_arns = var.root_ceremony_role_arns
   root_key_enabled                = var.root_key_enabled
   tags                            = local.tags
+}
+
+module "runtime_artifact_signing" {
+  count  = var.runtime_artifact_signing == null ? 0 : 1
+  source = "../../../modules/runtime-artifact-signing"
+
+  name                      = var.name
+  key_administrator_arns    = var.runtime_artifact_signing.key_administrator_arns
+  artifact_signer_role_arns = var.runtime_artifact_signing.artifact_signer_role_arns
+  tags                      = local.tags
+}
+
+resource "terraform_data" "runtime_artifact_signing_guard" {
+  input = var.runtime_artifact_signing
+
+  lifecycle {
+    precondition {
+      condition     = var.runtime_artifact_signing == null || !contains(var.runtime_artifact_signing.artifact_signer_role_arns, module.step_ca_ec2.runtime_role_arn)
+      error_message = "The Lean step-ca runtime role must not sign its own runtime artifact manifest."
+    }
+  }
 }
 
 data "aws_iam_policy_document" "runtime" {
