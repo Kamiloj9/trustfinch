@@ -1,0 +1,29 @@
+name: pki-local-test
+
+services:
+  step-ca:
+    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    entrypoint: ["/bin/bash", "/workspace/docker/step-ca/local-entrypoint.sh"]
+    environment:
+      LOCAL_CA_PASSWORD: local-test-password-not-for-production
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - step-ca-state:/home/step
+      - ./docker/step-ca/local-entrypoint.sh:/workspace/docker/step-ca/local-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "step ca health 2>/dev/null | grep '^ok' >/dev/null"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
+
+  step-cli:
+    image: smallstep/step-cli@sha256:c75414251d4d8234945fb01e1374707dcc6a7adced88679bae4f0fd526331e74
+    entrypoint: ["/bin/bash"]
+    depends_on:
+      step-ca:
+        condition: service_healthy
+
+volumes:
+  step-ca-state:

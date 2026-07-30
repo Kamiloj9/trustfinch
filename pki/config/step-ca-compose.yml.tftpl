@@ -1,0 +1,52 @@
+services:
+  step-ca:
+    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    entrypoint: ["/usr/local/bin/step-ca"]
+    command: ["/home/step/config/ca.json"]
+    restart: unless-stopped
+    environment:
+      AWS_REGION: ${aws_region}
+      AWS_DEFAULT_REGION: ${aws_region}
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777,noexec,nosuid,size=64m
+    volumes:
+      - /opt/pki/runtime/step-ca/ca.json:/home/step/config/ca.json:ro
+      - /opt/pki/runtime/certs:/etc/step-ca/certs:ro
+      - /var/lib/step-ca:/home/step/db
+    expose:
+      - "9000"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${aws_region}
+        awslogs-group: ${cloudwatch_log_group}
+        awslogs-stream: step-ca
+
+  caddy:
+    image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - /opt/pki/runtime/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/pki/runtime/certs/root_ca.crt:/etc/caddy/step-ca/root_ca.crt:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - step-ca
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${aws_region}
+        awslogs-group: ${cloudwatch_log_group}
+        awslogs-stream: caddy
+
+volumes:
+  caddy_data:
+  caddy_config:

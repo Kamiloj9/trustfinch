@@ -1,0 +1,11 @@
+${ca_fqdn} {
+	encode zstd gzip
+
+	reverse_proxy https://step-ca:9000 {
+		header_up Host ${ca_fqdn}
+		transport http {
+			tls_trust_pool file /etc/caddy/step-ca/root_ca.crt
+			tls_server_name ${ca_fqdn}
+		}
+	}
+}

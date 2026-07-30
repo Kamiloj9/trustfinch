@@ -1,0 +1,17 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+
+# Terraform state and provider cache
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+
+# Local CA state. It contains disposable private keys created only by Docker tests.
+.local/
+
+# Ceremony output is public, but must be explicitly reviewed before versioning.
+ceremony/output/

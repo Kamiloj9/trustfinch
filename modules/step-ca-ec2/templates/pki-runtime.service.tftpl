@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+dnf install -y docker awscli2
+systemctl enable --now docker
+
+install -d -m 0750 /opt/pki/runtime /var/lib/step-ca
+# The pinned step-ca image runs as uid:gid 1000:1000. The Badger directory is
+# the only writable mount in its otherwise read-only container filesystem.
+chown 1000:1000 /var/lib/step-ca
+
+cat >/etc/systemd/system/pki-runtime.service <<'UNIT'
+[Unit]
+Description=Self-hosted PKI runtime
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=0
+ExecStartPre=/usr/bin/mkdir -p /opt/pki/runtime /var/lib/step-ca
+ExecStartPre=/usr/bin/aws s3 sync s3://${artifact_bucket}/runtime /opt/pki/runtime --exact-timestamps
+ExecStart=/usr/bin/docker compose -f /opt/pki/runtime/step-ca-compose.yml up --remove-orphans
+ExecStop=/usr/bin/docker compose -f /opt/pki/runtime/step-ca-compose.yml down
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+# Fail visibly and retry through systemd if artifacts have not yet been
+# published by the reviewed ceremony/deployment pipeline.
+systemctl daemon-reload
+systemctl enable --now pki-runtime.service

@@ -1,0 +1,53 @@
+#!/bin/bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+STEP_CA_IMAGE="smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270"
+
+cd "${ROOT_DIR}"
+
+fail() {
+  printf 'static check failed: %s\n' "$*" >&2
+  exit 1
+}
+
+for binary in docker rg awk; do
+  command -v "${binary}" >/dev/null || fail "${binary} is required"
+done
+
+docker compose -f docker-compose.local.yml config --quiet
+[[ -f environments/dev/eu-central-1/.terraform.lock.hcl ]] \
+  || fail "Terraform provider lock file must be versioned"
+
+shell_files=()
+while IFS= read -r shell_file; do
+  shell_files+=("/workspace/${shell_file}")
+done < <(rg --files -g '*.sh')
+(( ${#shell_files[@]} > 0 )) || fail "no shell files found"
+docker run --rm -v "${ROOT_DIR}:/workspace:ro" --entrypoint /bin/bash "${STEP_CA_IMAGE}" -n \
+  "${shell_files[@]}"
+
+while IFS= read -r image; do
+  [[ "${image}" == *@sha256:* ]] || fail "container image is not digest-pinned: ${image}"
+done < <(rg --no-filename '^\s*image:' docker-compose.local.yml pki/config | sed -E 's/.*image:[[:space:]]*//')
+
+if rg -i --glob '*.tf' 'tls_private_key|private_key_pem|private_key' modules environments; then
+  fail "Terraform must not manage or carry a CA private key"
+fi
+
+if awk '/data "aws_iam_policy_document" "root"/{in_root=1} /data "aws_iam_policy_document" "intermediate"/{in_root=0} in_root && /runtime_role_arn/{found=1} END{exit !found}' modules/kms-ca/main.tf; then
+  fail "root key policy must not grant the runtime role access"
+fi
+
+rg --quiet 'is_enabled\s*=\s*var\.root_key_enabled' modules/kms-ca/main.tf \
+  || fail "root key enablement must remain explicit"
+rg --quiet 'kms:Sign' modules/kms-ca/main.tf \
+  || fail "KMS signing permission missing"
+rg --quiet 'kms:Sign' environments/dev/eu-central-1/main.tf \
+  || fail "runtime IAM KMS permission missing"
+rg --quiet 'chown 1000:1000 /var/lib/step-ca' modules/step-ca-ec2/templates/pki-runtime.service.tftpl \
+  || fail "step-ca writable state directory must match the container user"
+rg --quiet 'AmazonSSMManagedInstanceCore' modules/step-ca-ec2/main.tf \
+  || fail "runtime administration must use SSM rather than SSH"
+
+printf '%s\n' 'static checks passed'
