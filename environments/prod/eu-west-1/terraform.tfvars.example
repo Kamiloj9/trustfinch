@@ -41,3 +41,6 @@ certificate_publisher_role_arns = ["arn:aws:iam::111122223333:role/pki-root-cere
 # }
 # aws_iid_accounts      = ["111122223333"]
 # aws_iid_dns_allowlist = ["*.eu-west-1.compute.internal"]
+# Optional: use an independent regional ACME rollout and only reviewed
+# wildcard DNS subdomains; ACME accounts and orders are region-affine.
+# acme = { dns_allowlist = ["*.apps.example.internal"] }

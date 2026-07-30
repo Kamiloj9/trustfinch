@@ -43,5 +43,8 @@ certificate_publisher_role_arns = ["arn:aws:iam::111122223333:role/pki-root-cere
 # }
 # aws_iid_accounts      = ["111122223333"]
 # aws_iid_dns_allowlist = ["*.eu-central-1.compute.internal"]
+# Optional: only enable after the challenge-ownership review and ACME negative
+# test are recorded. Each entry must be a reviewed wildcard subdomain.
+# acme = { dns_allowlist = ["*.apps.example.internal"] }
 
 root_key_enabled = false

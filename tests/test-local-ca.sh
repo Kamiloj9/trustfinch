@@ -30,7 +30,7 @@ docker run --rm \
   -v "${CONFIG_DIR}:/etc/caddy:ro" \
   "${CADDY_IMAGE}" validate --config /etc/caddy/Caddyfile --adapter caddyfile
 
-"${COMPOSE[@]}" run --rm -T \
+"${COMPOSE[@]}" run --rm --use-aliases -T \
   -e CA_FINGERPRINT="${fingerprint}" \
   step-cli \
   -ec '
@@ -48,6 +48,22 @@ docker run --rm \
       --provisioner local-test \
       --provisioner-password-file "${password_file}"
     step certificate verify --roots "${root}" /tmp/allowed.crt
+
+    step ca certificate acme.pki.test /tmp/acme.crt /tmp/acme.key \
+      --ca-url "${ca_url}" \
+      --root "${root}" \
+      --provisioner acme \
+      --standalone
+    step certificate verify --roots "${root}" /tmp/acme.crt
+
+    if step ca certificate rejected.outside.test /tmp/rejected-acme.crt /tmp/rejected-acme.key \
+      --ca-url "${ca_url}" \
+      --root "${root}" \
+      --provisioner acme \
+      --standalone; then
+      printf "%s\n" "out-of-policy ACME DNS name was unexpectedly issued" >&2
+      exit 1
+    fi
 
     if step ca certificate rejected.outside.test /tmp/rejected.crt /tmp/rejected.key \
       --ca-url "${ca_url}" \

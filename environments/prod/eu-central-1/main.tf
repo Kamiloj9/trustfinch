@@ -170,6 +170,14 @@ locals {
         defaultTLSCertDuration = "24h"
       }
     }],
+    var.acme == null ? [] : [{
+      type = "ACME"
+      name = "ACME"
+      claims = {
+        maxTLSCertDuration     = "24h"
+        defaultTLSCertDuration = "24h"
+      }
+    }],
     var.gitlab_oidc == null ? [] : [{
       type = "JWK"
       name = "GitLab Enrollment Broker"
@@ -220,7 +228,7 @@ locals {
     intermediate_key_id  = module.kms_ca.intermediate_key_id
     internal_dns_suffix  = var.internal_dns_suffix
     trust_domain         = var.trust_domain
-    dns_allowlist_json   = jsonencode(concat(["*.${var.internal_dns_suffix}"], var.aws_iid_dns_allowlist))
+    dns_allowlist_json   = jsonencode(concat(["*.${var.internal_dns_suffix}"], var.aws_iid_dns_allowlist, var.acme == null ? [] : var.acme.dns_allowlist))
     email_allowlist_json = jsonencode(var.google_oidc == null ? [] : ["@${var.google_oidc.workspace_domain}"])
     provisioners_json    = jsonencode(local.provisioners)
   })

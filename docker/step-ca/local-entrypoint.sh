@@ -18,6 +18,8 @@ if [[ ! -f "${STEPPATH}/config/ca.json" ]]; then
     --password-file "${STEPPATH}/password" \
     --provisioner-password-file "${STEPPATH}/password"
 
+  step ca provisioner add acme --type ACME --ca-config "${STEPPATH}/config/ca.json"
+
   # The integration test must prove that the authority policy blocks a SAN
   # outside the trust domain. Keep this in the local-only CA configuration.
   sed -i '/"authority": {/a\    "policy": {"x509": {"allow": {"dns": ["*.pki.test"]}}},' "${STEPPATH}/config/ca.json"

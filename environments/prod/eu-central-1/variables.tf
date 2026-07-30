@@ -104,6 +104,24 @@ variable "iam_sigv4" {
   }
 }
 
+variable "acme" {
+  type = object({
+    dns_allowlist = list(string)
+  })
+  description = "Optional ACME server-auth enrollment. Every approved DNS pattern must be a lowercase wildcard subdomain."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.acme == null || (
+      length(var.acme.dns_allowlist) > 0 &&
+      length(distinct(var.acme.dns_allowlist)) == length(var.acme.dns_allowlist) &&
+      alltrue([for dns_name in var.acme.dns_allowlist : dns_name == lower(dns_name) && can(regex("^\\*\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$", dns_name))])
+    )
+    error_message = "ACME requires at least one unique lowercase wildcard subdomain, for example *.apps.example.internal."
+  }
+}
+
 variable "aws_iid_accounts" {
   type        = list(string)
   description = "AWS account IDs allowed to use the conservative IID provisioner. An empty list disables it."

@@ -24,6 +24,10 @@ services:
     depends_on:
       step-ca:
         condition: service_healthy
+    networks:
+      default:
+        aliases:
+          - acme.pki.test
 
 volumes:
   step-ca-state:

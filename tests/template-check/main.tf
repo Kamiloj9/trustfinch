@@ -127,6 +127,24 @@ locals {
       }
     }])
   }))
+
+  acme_config = jsondecode(templatefile("${path.module}/../../pki/config/ca.json.tftpl", {
+    aws_region           = "eu-central-1"
+    ca_fqdn              = "ca.test.example.internal"
+    intermediate_key_id  = "00000000-0000-0000-0000-000000000000"
+    internal_dns_suffix  = "test.example.internal"
+    trust_domain         = "test.example.internal"
+    dns_allowlist_json   = jsonencode(["*.test.example.internal", "*.apps.test.example.internal"])
+    email_allowlist_json = jsonencode([])
+    provisioners_json = jsonencode([{
+      type = "ACME"
+      name = "ACME"
+      claims = {
+        maxTLSCertDuration     = "24h"
+        defaultTLSCertDuration = "24h"
+      }
+    }])
+  }))
 }
 
 output "validated_template_fields" {
@@ -143,6 +161,9 @@ output "validated_template_fields" {
     gitlab_broker_has_private_jwk_mount     = strcontains(local.gitlab_broker_compose, "/run/secrets/gitlab-broker.jwk")
     gitlab_broker_uses_jwk_provisioner      = local.gitlab_broker_config.authority.provisioners[0].type == "JWK"
     gitlab_broker_disables_renewal          = local.gitlab_broker_config.authority.provisioners[0].claims.disableRenewal
+    acme_uses_acme_provisioner              = local.acme_config.authority.provisioners[0].type == "ACME"
+    acme_has_restricted_dns_allowlist       = contains(local.acme_config.authority.policy.x509.allow.dns, "*.apps.test.example.internal")
+    acme_ttl_is_limited                     = local.acme_config.authority.provisioners[0].claims.maxTLSCertDuration == "24h"
   }
 }
 

@@ -111,6 +111,18 @@ rg --quiet 'backup_retention_days' environments/dev/eu-central-1/main.tf \
   || fail "Lean environment must configure CA-state backup retention"
 rg --quiet 'backup_retention_period\s*=\s*var\.backup_retention_days' modules/postgres/main.tf \
   || fail "Production PostgreSQL must retain point-in-time recovery backups"
+for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
+  rg --quiet 'type = "ACME"' "${environment}/main.tf" \
+    || fail "ACME provisioner must be explicitly rendered only from reviewed input: ${environment}"
+  rg --quiet 'var\.acme == null \? \[\] : var\.acme\.dns_allowlist' "${environment}/main.tf" \
+    || fail "ACME DNS allowlist must be explicit: ${environment}"
+done
+rg --quiet -- '--use-aliases' tests/test-local-ca.sh \
+  || fail "local ACME HTTP-01 test must use its isolated challenge alias"
+rg --quiet 'step ca provisioner add acme --type ACME' docker/step-ca/local-entrypoint.sh \
+  || fail "local test CA must enable the ACME provisioner"
+rg --quiet 'rejected-acme\.crt' tests/test-local-ca.sh \
+  || fail "local ACME test must reject an out-of-policy order"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"

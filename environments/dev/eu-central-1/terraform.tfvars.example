@@ -47,6 +47,12 @@ backup_retention_days = 35
 # }
 # aws_iid_accounts      = ["111122223333"]
 # aws_iid_dns_allowlist = ["*.eu-central-1.compute.internal"]
+# Optional: ACME accepts only proof-of-possession challenges for DNS names in
+# these reviewed wildcard subdomains. Keep an independent DNS or network
+# challenge-ownership control for every client that uses this provisioner.
+# acme = {
+#   dns_allowlist = ["*.apps.dev.example.internal"]
+# }
 
 # Keep false except for the tightly timed root certificate ceremony.
 root_key_enabled = false

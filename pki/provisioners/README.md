@@ -14,6 +14,12 @@ Recommended order:
 
 Do not expose a JWK provisioner password in Git, Terraform variables, user data, CloudWatch logs, or a long-lived CI variable.
 
+## ACME workload enrollment
+
+Set the optional regional `acme` object only with reviewed wildcard DNS patterns such as `*.apps.example.internal`. The profile adds those patterns to the CA authority policy and renders an `ACME` provisioner with a 24-hour TLS certificate lifetime. It accepts standard ACMEv2 proof-of-possession challenges; the CA endpoint never grants a certificate merely because a client can reach its directory URL.
+
+Use a challenge method whose trust boundary is documented for the workload: DNS-01 needs control of the corresponding DNS zone; HTTP-01 and TLS-ALPN-01 need exclusive control of the validated hostname and network path. The local Docker test performs HTTP-01 issuance for an allowed name and proves the authority rejects a DNS name outside policy. Keep separate ACME configuration and accounts in each regional CA because orders, accounts, and revocation state do not replicate.
+
 ## GitLab CI enrollment broker
 
 Set the optional `gitlab_oidc` object in the regional profile only after reviewing an explicit identity mapping for every protected branch or tag. Each mapping binds all of the following signed GitLab claims: exact issuer, `aud`, `project_id`, `project_path`, `ref_type`, `ref`, and `ref_protected=true`. It emits only the configured subject and SPIFFE URI SAN; a CSR with any other SAN is rejected before it reaches the CA.
