@@ -7,6 +7,9 @@ ca_fqdn             = "ca.dev.example.internal"
 internal_dns_suffix = "dev.example.internal"
 trust_domain        = "dev.example.internal"
 allowed_https_cidrs = ["203.0.113.0/24"]
+# Maximum intermediate-KMS signing requests over five minutes before an
+# issuance-abuse/cost alarm. Tune after measuring expected enrollment bursts.
+intermediate_kms_sign_alarm_threshold = 200
 
 # Daily recovery points for the encrypted Lean step-ca state volume. Keep this
 # at or above the agreed RPO window and rehearse the recovery runbook.

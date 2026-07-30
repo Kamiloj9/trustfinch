@@ -104,15 +104,16 @@ module "kms_ca" {
 module "observability" {
   source = "../../../modules/observability"
 
-  name                         = var.name
-  root_key_arn                 = module.kms_ca.root_key_arn
-  intermediate_key_arn         = module.kms_ca.intermediate_key_arn
-  runtime_log_group_name       = aws_cloudwatch_log_group.runtime.name
-  load_balancer_arn_suffix     = module.step_ca_ha.load_balancer_arn_suffix
-  target_group_arn_suffix      = module.step_ca_ha.target_group_arn_suffix
-  database_instance_identifier = module.postgres.instance_identifier
-  alarm_actions                = var.alarm_actions
-  tags                         = local.tags
+  name                                  = var.name
+  root_key_arn                          = module.kms_ca.root_key_arn
+  intermediate_key_arn                  = module.kms_ca.intermediate_key_arn
+  intermediate_kms_sign_alarm_threshold = var.intermediate_kms_sign_alarm_threshold
+  runtime_log_group_name                = aws_cloudwatch_log_group.runtime.name
+  load_balancer_arn_suffix              = module.step_ca_ha.load_balancer_arn_suffix
+  target_group_arn_suffix               = module.step_ca_ha.target_group_arn_suffix
+  database_instance_identifier          = module.postgres.instance_identifier
+  alarm_actions                         = var.alarm_actions
+  tags                                  = local.tags
 }
 
 data "aws_iam_policy_document" "runtime_kms" {

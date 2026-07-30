@@ -200,6 +200,38 @@ resource "aws_cloudwatch_metric_alarm" "intermediate_kms_sign_error" {
   tags = var.tags
 }
 
+resource "aws_cloudwatch_log_metric_filter" "intermediate_kms_sign" {
+  count = var.intermediate_key_arn == null ? 0 : 1
+
+  name           = "${var.name}-intermediate-kms-sign"
+  log_group_name = aws_cloudwatch_log_group.trail.name
+  pattern        = "{ ($.eventSource = \"kms.amazonaws.com\") && ($.eventName = \"Sign\") && ($.resources[0].ARN = \"${var.intermediate_key_arn}\") }"
+
+  metric_transformation {
+    name      = "IntermediateKmsSigns"
+    namespace = "PKI/${var.name}"
+    value     = "1"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "intermediate_kms_sign_volume" {
+  count = var.intermediate_key_arn == null || var.intermediate_kms_sign_alarm_threshold == null ? 0 : 1
+
+  alarm_name          = "${var.name}-intermediate-kms-sign-volume"
+  alarm_description   = "Intermediate KMS signing volume exceeded the reviewed five-minute abuse and cost threshold."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = aws_cloudwatch_log_metric_filter.intermediate_kms_sign[0].metric_transformation[0].name
+  namespace           = "PKI/${var.name}"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = var.intermediate_kms_sign_alarm_threshold
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  tags = var.tags
+}
+
 resource "aws_cloudwatch_log_metric_filter" "issued_certificates" {
   count = var.runtime_log_group_name == null ? 0 : 1
 

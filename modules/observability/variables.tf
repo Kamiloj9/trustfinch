@@ -17,6 +17,18 @@ variable "intermediate_key_arn" {
   nullable    = true
 }
 
+variable "intermediate_kms_sign_alarm_threshold" {
+  type        = number
+  description = "Optional maximum intermediate KMS signing requests in five minutes before an abuse/cost alarm fires."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition     = var.intermediate_kms_sign_alarm_threshold == null || var.intermediate_kms_sign_alarm_threshold >= 1
+    error_message = "intermediate_kms_sign_alarm_threshold must be at least one request per five minutes when configured."
+  }
+}
+
 variable "runtime_log_group_name" {
   type        = string
   description = "Optional CloudWatch log group receiving sanitized step-ca JSON logs."

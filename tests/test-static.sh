@@ -157,6 +157,10 @@ rg --quiet 'SignLatencyNanoseconds' modules/observability/main.tf \
   || fail "observability must record signing latency"
 rg --quiet 'IntermediateKmsSignErrors' modules/observability/main.tf \
   || fail "observability must alert on failed intermediate KMS signing"
+rg --quiet 'IntermediateKmsSigns' modules/observability/main.tf \
+  || fail "observability must record intermediate KMS signing volume"
+rg --quiet 'intermediate_kms_sign_alarm_threshold' modules/observability/main.tf \
+  || fail "observability must support a reviewed intermediate KMS signing threshold"
 rg --quiet 'UnHealthyHostCount' modules/observability/main.tf \
   || fail "observability must alert when an HA step-ca target is unhealthy"
 rg --quiet 'HTTPCode_Target_5XX_Count' modules/observability/main.tf \

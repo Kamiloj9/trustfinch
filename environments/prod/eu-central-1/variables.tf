@@ -219,6 +219,17 @@ variable "alarm_actions" {
   default = []
 }
 
+variable "intermediate_kms_sign_alarm_threshold" {
+  type        = number
+  description = "Reviewed maximum intermediate-KMS signing operations in five minutes before an abuse/cost alarm fires."
+  default     = 500
+
+  validation {
+    condition     = var.intermediate_kms_sign_alarm_threshold >= 1
+    error_message = "intermediate_kms_sign_alarm_threshold must be at least one request per five minutes."
+  }
+}
+
 variable "postgres_instance_class" {
   type    = string
   default = "db.t4g.medium"

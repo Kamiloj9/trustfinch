@@ -206,6 +206,17 @@ variable "alarm_actions" {
   default     = []
 }
 
+variable "intermediate_kms_sign_alarm_threshold" {
+  type        = number
+  description = "Reviewed maximum intermediate-KMS signing operations in five minutes before an abuse/cost alarm fires."
+  default     = 200
+
+  validation {
+    condition     = var.intermediate_kms_sign_alarm_threshold >= 1
+    error_message = "intermediate_kms_sign_alarm_threshold must be at least one request per five minutes."
+  }
+}
+
 variable "backup_retention_days" {
   type        = number
   description = "Retention for the daily AWS Backup recovery point of the encrypted Lean CA-state volume."

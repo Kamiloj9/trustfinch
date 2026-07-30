@@ -9,6 +9,9 @@ acm_certificate_arn = "arn:aws:acm:eu-central-1:111122223333:certificate/replace
 # after measuring expected client-NAT and enrollment bursts.
 enable_waf_rate_limit = true
 waf_rate_limit        = 500
+# Maximum intermediate-KMS signing requests over five minutes before an
+# issuance-abuse/cost alarm. Tune after measuring expected enrollment bursts.
+intermediate_kms_sign_alarm_threshold = 500
 
 key_administrator_arns = ["arn:aws:iam::111122223333:role/pki-key-administrator"]
 root_ceremony_role_arns = ["arn:aws:iam::111122223333:role/pki-root-ceremony"]
