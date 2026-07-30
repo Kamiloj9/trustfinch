@@ -15,9 +15,9 @@ redacted_logs="$(docker run --rm --entrypoint /usr/bin/env \
   || { printf '%s\n' 'text one-time token was not redacted' >&2; exit 1; }
 [[ "${redacted_logs}" != *json-token-value-that-must-not-be-logged* ]] \
   || { printf '%s\n' 'JSON one-time token was not redacted' >&2; exit 1; }
-[[ "${redacted_logs}" == *'ott=[REDACTED]'* ]] \
+[[ "${redacted_logs}" == *ott=\[REDACTED\]* ]] \
   || { printf '%s\n' 'text one-time token redaction marker missing' >&2; exit 1; }
-[[ "${redacted_logs}" == *'"ott":"[REDACTED]'* ]] \
+[[ "${redacted_logs}" == *'"ott":"'\[REDACTED\]'"'* ]] \
   || { printf '%s\n' 'JSON one-time token redaction marker missing' >&2; exit 1; }
 
 printf '%s\n' 'step-ca log redaction checks passed'

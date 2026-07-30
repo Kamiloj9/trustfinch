@@ -97,10 +97,12 @@ module "kms_ca" {
 module "observability" {
   source = "../../../modules/observability"
 
-  name          = var.name
-  root_key_arn  = null
-  alarm_actions = var.alarm_actions
-  tags          = local.tags
+  name                   = var.name
+  root_key_arn           = null
+  intermediate_key_arn   = module.kms_ca.intermediate_key_arn
+  runtime_log_group_name = aws_cloudwatch_log_group.runtime.name
+  alarm_actions          = var.alarm_actions
+  tags                   = local.tags
 }
 
 data "aws_iam_policy_document" "runtime_kms" {

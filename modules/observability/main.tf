@@ -166,3 +166,149 @@ resource "aws_cloudwatch_metric_alarm" "root_sign" {
 
   tags = var.tags
 }
+
+resource "aws_cloudwatch_log_metric_filter" "intermediate_kms_sign_error" {
+  count = var.intermediate_key_arn == null ? 0 : 1
+
+  name           = "${var.name}-intermediate-kms-sign-error"
+  log_group_name = aws_cloudwatch_log_group.trail.name
+  pattern        = "{ ($.eventSource = \"kms.amazonaws.com\") && ($.eventName = \"Sign\") && ($.resources[0].ARN = \"${var.intermediate_key_arn}\") && ($.errorCode = \"*\") }"
+
+  metric_transformation {
+    name          = "IntermediateKmsSignErrors"
+    namespace     = "PKI/${var.name}"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "intermediate_kms_sign_error" {
+  count = var.intermediate_key_arn == null ? 0 : 1
+
+  alarm_name          = "${var.name}-intermediate-kms-sign-error"
+  alarm_description   = "A failed intermediate CA KMS signing request can interrupt certificate issuance."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = aws_cloudwatch_log_metric_filter.intermediate_kms_sign_error[0].metric_transformation[0].name
+  namespace           = "PKI/${var.name}"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_log_metric_filter" "issued_certificates" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  name           = "${var.name}-issued-certificates"
+  log_group_name = var.runtime_log_group_name
+  pattern        = "{ ($.name = \"ca\") && ($.path = \"/sign\") && ($.status = 201) && ($.provisioner = \"*\") }"
+
+  metric_transformation {
+    name       = "IssuedCertificates"
+    namespace  = "PKI/${var.name}"
+    value      = "1"
+    dimensions = { Provisioner = "$.provisioner" }
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "ca_client_error" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  name           = "${var.name}-ca-4xx"
+  log_group_name = var.runtime_log_group_name
+  pattern        = "{ ($.name = \"ca\") && ($.status >= 400) && ($.status < 500) }"
+
+  metric_transformation {
+    name          = "CA4xxResponses"
+    namespace     = "PKI/${var.name}"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "ca_server_error" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  name           = "${var.name}-ca-5xx"
+  log_group_name = var.runtime_log_group_name
+  pattern        = "{ ($.name = \"ca\") && ($.status >= 500) }"
+
+  metric_transformation {
+    name          = "CA5xxResponses"
+    namespace     = "PKI/${var.name}"
+    value         = "1"
+    default_value = "0"
+  }
+}
+
+resource "aws_cloudwatch_log_metric_filter" "sign_latency" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  name           = "${var.name}-sign-latency"
+  log_group_name = var.runtime_log_group_name
+  pattern        = "{ ($.name = \"ca\") && ($.path = \"/sign\") && ($.status = 201) && ($.duration-ns = \"*\") }"
+
+  metric_transformation {
+    name      = "SignLatencyNanoseconds"
+    namespace = "PKI/${var.name}"
+    value     = "$.duration-ns"
+  }
+}
+
+resource "aws_cloudwatch_metric_alarm" "ca_server_error" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  alarm_name          = "${var.name}-ca-5xx"
+  alarm_description   = "A 5xx response from step-ca requires immediate investigation."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = aws_cloudwatch_log_metric_filter.ca_server_error[0].metric_transformation[0].name
+  namespace           = "PKI/${var.name}"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "ca_client_error" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  alarm_name          = "${var.name}-ca-4xx-volume"
+  alarm_description   = "Sustained CA 4xx responses can indicate an enrollment failure or abuse."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = aws_cloudwatch_log_metric_filter.ca_client_error[0].metric_transformation[0].name
+  namespace           = "PKI/${var.name}"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 20
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "sign_latency" {
+  count = var.runtime_log_group_name == null ? 0 : 1
+
+  alarm_name          = "${var.name}-sign-latency"
+  alarm_description   = "Average certificate signing latency exceeded one second."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = aws_cloudwatch_log_metric_filter.sign_latency[0].metric_transformation[0].name
+  namespace           = "PKI/${var.name}"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 1000000000
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  tags = var.tags
+}

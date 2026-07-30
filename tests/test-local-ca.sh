@@ -129,4 +129,18 @@ docker run --rm \
     fi
   '
 
+# Production uses JSON request logs to feed CloudWatch metric filters. Prove
+# the local CA exposes the issuance status, provisioner and duration fields
+# without printing any enrollment token from the request log.
+if ! "${COMPOSE[@]}" logs --no-log-prefix step-ca \
+  | jq -eR '
+      fromjson?
+      | select(.name == "ca" and .path == "/sign" and .status == 201)
+      | select(.provisioner != null and .["duration-ns"] != null)
+      | true
+    ' >/dev/null; then
+  printf '%s\n' 'step-ca JSON issuance log did not expose metric-filter fields' >&2
+  exit 1
+fi
+
 printf '%s\n' 'local CA policy and issuance integration checks passed'

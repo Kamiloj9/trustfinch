@@ -23,6 +23,9 @@ if [[ ! -f "${STEPPATH}/config/ca.json" ]]; then
   # The integration test must prove that the authority policy blocks a SAN
   # outside the trust domain. Keep this in the local-only CA configuration.
   sed -i '/"authority": {/a\    "policy": {"x509": {"allow": {"dns": ["*.pki.test"]}}},' "${STEPPATH}/config/ca.json"
+  # Keep the local request-log schema aligned with the AWS runtime so metric
+  # filters can be exercised without needing AWS credentials.
+  sed -i '/"authority": {/i\  "logger": {"format": "json"},' "${STEPPATH}/config/ca.json"
   install -d -m 0700 "${STEPPATH}/secrets"
   mv "${STEPPATH}/password" "${STEPPATH}/secrets/password"
 fi

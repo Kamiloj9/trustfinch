@@ -10,6 +10,20 @@ variable "root_key_arn" {
   nullable    = true
 }
 
+variable "intermediate_key_arn" {
+  type        = string
+  description = "Optional intermediate KMS key ARN monitored for failed signing requests."
+  default     = null
+  nullable    = true
+}
+
+variable "runtime_log_group_name" {
+  type        = string
+  description = "Optional CloudWatch log group receiving sanitized step-ca JSON logs."
+  default     = null
+  nullable    = true
+}
+
 variable "alarm_actions" {
   type        = list(string)
   description = "Optional SNS or incident-management alarm action ARNs."

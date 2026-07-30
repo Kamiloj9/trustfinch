@@ -19,6 +19,9 @@ if [[ ! -f "${STEPPATH}/config/ca.json" ]]; then
 
   sed -i '/"db": {/,/},/c\  "db": {"type": "postgresql", "dataSource": "postgresql://stepca:local-test-password-not-for-production@postgres:5432/stepca?sslmode=disable"},' "${STEPPATH}/config/ca.json"
   sed -i '/"authority": {/a\    "policy": {"x509": {"allow": {"dns": ["*.pki.test"]}}},' "${STEPPATH}/config/ca.json"
+  # Match the production logger format so local HA traffic uses the same
+  # CloudWatch metric-filter field schema.
+  sed -i '/"authority": {/i\  "logger": {"format": "json"},' "${STEPPATH}/config/ca.json"
   install -d -m 0700 "${STEPPATH}/secrets"
   mv "${STEPPATH}/password" "${STEPPATH}/secrets/password"
 fi

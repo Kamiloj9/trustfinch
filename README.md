@@ -16,6 +16,7 @@ The Lean profile does not claim production HA or multi-region recovery. The prod
 - A reusable workload renewal helper with bounded retry, jittered scheduling, chain verification, and atomic certificate replacement.
 - A passive-revocation runbook and local acceptance check proving revocation blocks future renewal within the short certificate lifetime.
 - A tested runtime log boundary that redacts one-time enrollment tokens before logs reach CloudWatch.
+- CloudWatch metrics and alarms for issuance by provisioner, CA errors/signing latency, root use, and failed intermediate KMS signatures.
 - Acceptance checks that run with Docker on a developer machine: `make test`.
 
 ## Start here

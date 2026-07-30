@@ -143,6 +143,22 @@ for runtime_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-
 done
 rg --quiet 'ott=' pki/runtime/redact-step-ca-logs.sh \
   || fail "step-ca log redactor must remove one-time tokens"
+for local_entrypoint in docker/step-ca/local-entrypoint.sh docker/step-ca/local-ha-entrypoint.sh; do
+  rg --quiet '"logger": \{"format": "json"\}' "${local_entrypoint}" \
+    || fail "local CA must use production-compatible JSON request logs: ${local_entrypoint}"
+done
+rg --quiet 'IssuedCertificates' modules/observability/main.tf \
+  || fail "observability must record issued certificates by provisioner"
+rg --quiet 'CA5xxResponses' modules/observability/main.tf \
+  || fail "observability must alert on CA server errors"
+rg --quiet 'SignLatencyNanoseconds' modules/observability/main.tf \
+  || fail "observability must record signing latency"
+rg --quiet 'IntermediateKmsSignErrors' modules/observability/main.tf \
+  || fail "observability must alert on failed intermediate KMS signing"
+for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
+  rg --quiet 'runtime_log_group_name' "${environment}/main.tf" \
+    || fail "observability must receive the sanitized runtime log group: ${environment}"
+done
 for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
   rg --quiet 'runtime/step-ca/step-ca-entrypoint\.sh' "${environment}/main.tf" \
     || fail "runtime must publish the log-redacting entrypoint: ${environment}"

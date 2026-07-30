@@ -34,10 +34,12 @@ module "network" {
 module "observability" {
   source = "../../../modules/observability"
 
-  name          = var.name
-  root_key_arn  = module.kms_ca.root_key_arn
-  alarm_actions = var.alarm_actions
-  tags          = local.tags
+  name                   = var.name
+  root_key_arn           = module.kms_ca.root_key_arn
+  intermediate_key_arn   = module.kms_ca.intermediate_key_arn
+  runtime_log_group_name = aws_cloudwatch_log_group.runtime.name
+  alarm_actions          = var.alarm_actions
+  tags                   = local.tags
 }
 
 resource "aws_cloudwatch_log_group" "runtime" {
