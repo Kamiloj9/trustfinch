@@ -17,3 +17,8 @@ output "public_ip" {
   value       = aws_eip.runtime.public_ip
   description = "Stable Lean/PoC endpoint IP."
 }
+
+output "state_volume_id" {
+  value       = aws_instance.runtime.root_block_device[0].volume_id
+  description = "ID of the encrypted EBS volume containing the Lean step-ca issuance state."
+}

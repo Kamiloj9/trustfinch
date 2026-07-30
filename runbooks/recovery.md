@@ -7,15 +7,16 @@ The Lean profile can restore the CA runtime and issuance state after a host fail
 ## Recover a lost host
 
 1. Isolate the failed instance and preserve its forensic evidence. Do not reuse its EBS volume before the incident decision.
-2. Restore the Badger state directory from a tested encrypted EBS backup to a replacement volume. The database contains issuance/revocation and one-time-token state.
-3. Reapply the reviewed Terraform configuration. The runtime role, intermediate KMS key, S3 public certificates, and config are recreated/reused from infrastructure state; the private intermediate key remains in KMS.
-4. Attach or restore the state at `/var/lib/step-ca`, start `pki-runtime.service`, and verify health and issuance using a restricted test provisioner.
-5. Confirm the replacement runtime can sign only with the intermediate key; confirm the root key remains disabled.
-6. Record measured RTO/RPO, certificate issuance evidence, and any unrecoverable state. Rotate provisioner credentials if compromise is suspected.
+2. In AWS Backup, locate a successful recovery point in the Terraform output `ca_state_backup_vault`. Restore the exact encrypted `step-ca-state` EBS volume into the same AZ as an isolated helper instance. Attach it as a secondary volume and mount it read-only at `/mnt/pki-recovery`; never boot the restored root disk directly. The volume contains issuance, revocation, and one-time-token state.
+3. Reapply the reviewed Terraform configuration to create a replacement runtime. The runtime role, intermediate KMS key, S3 public certificates, and config are recreated/reused from infrastructure state; the private intermediate key remains in KMS.
+4. Before serving traffic, stop `pki-runtime.service` on the replacement host. Copy only `/mnt/pki-recovery/var/lib/step-ca` to `/var/lib/step-ca` while preserving numeric ownership, then unmount the recovery volume. Do not replace the replacement host's rendered configuration, systemd unit, or IAM identity with files from the backup.
+5. Start `pki-runtime.service`, verify health and restricted issuance, then retire the isolated helper instance and its restored volume according to the incident record.
+6. Confirm the replacement runtime can sign only with the intermediate key; confirm the root key remains disabled.
+7. Record measured RTO/RPO, certificate issuance evidence, and any unrecoverable state. Rotate provisioner credentials if compromise is suspected.
 
 ## Quarterly evidence
 
-Run the procedure in a non-production account. Include an attempted out-of-policy SAN, a root-key access denial from the runtime role, and an alarm test for a controlled root signing ceremony.
+Run the procedure in a non-production account at least quarterly. Record the recovery-point ID, elapsed RTO, data age/RPO, restored-volume encryption, successful restricted issuance, an attempted out-of-policy SAN, a root-key access denial from the runtime role, and an alarm test for a controlled root signing ceremony.
 
 ## Production HA recovery
 

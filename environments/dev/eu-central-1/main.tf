@@ -18,6 +18,10 @@ locals {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_partition" "current" {}
+
 module "network" {
   source = "../../../modules/network"
 
@@ -54,6 +58,18 @@ module "step_ca_ec2" {
   google_oidc_client_secret_arn   = try(var.google_oidc.client_secret_arn, null)
   gitlab_broker_jwk_secret_arn    = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
   tags                            = local.tags
+}
+
+module "backup" {
+  source = "../../../modules/backup"
+
+  name = var.name
+  resource_arns = [
+    "arn:${data.aws_partition.current.partition}:ec2:${var.aws_region}:${data.aws_caller_identity.current.account_id}:volume/${module.step_ca_ec2.state_volume_id}",
+  ]
+  retention_days = var.backup_retention_days
+  alarm_actions  = var.alarm_actions
+  tags           = local.tags
 }
 
 module "gitlab_enrollment_replay" {

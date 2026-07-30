@@ -217,6 +217,12 @@ resource "aws_instance" "runtime" {
     encrypted   = true
     volume_type = "gp3"
     volume_size = var.root_volume_size
+
+    tags = merge(var.tags, {
+      Name      = "${var.name}-step-ca-state"
+      Role      = "step-ca-state"
+      DataClass = "pki-issuance-state"
+    })
   }
 
   user_data = templatefile("${path.module}/templates/pki-runtime.service.tftpl", {

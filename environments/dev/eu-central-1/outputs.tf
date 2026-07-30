@@ -32,3 +32,8 @@ output "iam_enrollment_invoke_policy_json" {
   value       = try(module.iam_enrollment_gateway[0].invoke_policy_json, null)
   description = "Attach only to IAM roles explicitly approved in iam_sigv4.identities."
 }
+
+output "ca_state_backup_vault" {
+  value       = module.backup.vault_name
+  description = "AWS Backup vault with daily recovery points for the Lean CA issuance-state volume."
+}

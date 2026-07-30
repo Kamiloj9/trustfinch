@@ -187,3 +187,14 @@ variable "alarm_actions" {
   description = "Optional alarm action ARNs. Empty is valid only for initial PoC validation."
   default     = []
 }
+
+variable "backup_retention_days" {
+  type        = number
+  description = "Retention for the daily AWS Backup recovery point of the encrypted Lean CA-state volume."
+  default     = 35
+
+  validation {
+    condition     = var.backup_retention_days >= 7 && var.backup_retention_days <= 3650
+    error_message = "backup_retention_days must be between 7 and 3650 days."
+  }
+}

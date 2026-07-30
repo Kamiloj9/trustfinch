@@ -97,6 +97,20 @@ rg --quiet 'NormalizeAssumedRoleARN' broker/internal/iam/config.go \
   || fail "IAM enrollment must normalize only trusted assumed-role ARNs"
 rg --quiet 'execute-api:Invoke' modules/iam-enrollment-gateway/main.tf \
   || fail "IAM enrollment must emit a least-privilege caller invoke policy"
+rg --quiet 'aws_backup_plan' modules/backup/main.tf \
+  || fail "Lean CA state must have a Terraform-managed AWS Backup plan"
+rg --quiet 'resources\s*=\s*var\.resource_arns' modules/backup/main.tf \
+  || fail "Lean CA-state backup must use an explicit resource selection"
+rg --quiet 'AWSBackupServiceRolePolicyForRestores' modules/backup/main.tf \
+  || fail "Lean CA-state backup role must support the documented restore workflow"
+rg --quiet 'NumberOfBackupJobsFailed' modules/backup/main.tf \
+  || fail "Lean CA-state backup failures must alert"
+rg --quiet 'state_volume_id' modules/step-ca-ec2/outputs.tf \
+  || fail "Lean CA backup must identify its exact state volume"
+rg --quiet 'backup_retention_days' environments/dev/eu-central-1/main.tf \
+  || fail "Lean environment must configure CA-state backup retention"
+rg --quiet 'backup_retention_period\s*=\s*var\.backup_retention_days' modules/postgres/main.tf \
+  || fail "Production PostgreSQL must retain point-in-time recovery backups"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"
