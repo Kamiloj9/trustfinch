@@ -24,11 +24,12 @@
     "policy": {
       "x509": {
         "allow": {
-          "dns": ["*.${internal_dns_suffix}"],
-          "uri": ["spiffe://${trust_domain}/*"]
+          "dns": ${dns_allowlist_json},
+          "uri": ["spiffe://${trust_domain}/*"],
+          "email": ${email_allowlist_json}
         }
       }
     },
-    "provisioners": []
+    "provisioners": ${provisioners_json}
   }
 }

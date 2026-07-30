@@ -8,5 +8,14 @@ internal_dns_suffix = "dev.example.internal"
 trust_domain        = "dev.example.internal"
 allowed_https_cidrs = ["203.0.113.0/24"]
 
+# Optional: secret JSON must have a client_secret field.
+# google_oidc = {
+#   client_id         = "replace.apps.googleusercontent.com"
+#   workspace_domain  = "example.com"
+#   client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
+# }
+# aws_iid_accounts      = ["111122223333"]
+# aws_iid_dns_allowlist = ["*.eu-central-1.compute.internal"]
+
 # Keep false except for the tightly timed root certificate ceremony.
 root_key_enabled = false

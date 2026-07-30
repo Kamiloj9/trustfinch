@@ -14,7 +14,7 @@ docker run --rm \
   "${AMAZON_LINUX_IMAGE}" \
   -ec '
     command -v curl >/dev/null
-    dnf install -y docker >/dev/null
+    dnf install -y docker gettext >/dev/null
     install -d -m 0755 /usr/local/lib/docker/cli-plugins
     curl --fail --silent --show-error --location \
       --output /usr/local/lib/docker/cli-plugins/docker-compose \
@@ -22,6 +22,7 @@ docker run --rm \
     printf "%s  %s\n" "${COMPOSE_SHA256}" /usr/local/lib/docker/cli-plugins/docker-compose | sha256sum -c -
     chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
     docker compose version >/dev/null
+    envsubst --version >/dev/null
   '
 
 printf '%s\n' 'Amazon Linux Docker Compose bootstrap check passed'

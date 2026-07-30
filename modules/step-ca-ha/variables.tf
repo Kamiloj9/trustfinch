@@ -30,6 +30,13 @@ variable "database_secret_arn" {
   type = string
 }
 
+variable "google_oidc_client_secret_arn" {
+  type        = string
+  description = "Optional Secrets Manager ARN containing {\"client_secret\": \"...\"} for the Google Workspace OIDC native client."
+  default     = null
+  nullable    = true
+}
+
 variable "runtime_release_id" {
   type        = string
   description = "Reviewed runtime-artifact release identifier. Changing it performs a rolling ASG refresh."

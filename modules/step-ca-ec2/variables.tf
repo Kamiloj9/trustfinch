@@ -18,6 +18,13 @@ variable "cloudwatch_log_group_name" {
   description = "CloudWatch log group used by the Docker awslogs driver."
 }
 
+variable "google_oidc_client_secret_arn" {
+  type        = string
+  description = "Optional Secrets Manager ARN containing {\"client_secret\": \"...\"} for the Google Workspace OIDC native client."
+  default     = null
+  nullable    = true
+}
+
 variable "ami_id" {
   type        = string
   description = "Optional ARM64 Amazon Linux 2023 AMI ID. Null uses AWS's public SSM parameter."

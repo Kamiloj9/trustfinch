@@ -20,6 +20,40 @@ variable "trust_domain" {
   type = string
 }
 
+variable "google_oidc" {
+  type = object({
+    client_id         = string
+    workspace_domain  = string
+    client_secret_arn = string
+  })
+  description = "Optional Google Workspace native OIDC client. Its client secret stays in the referenced Secrets Manager JSON secret."
+  default     = null
+  nullable    = true
+}
+
+variable "aws_iid_accounts" {
+  type        = list(string)
+  description = "AWS account IDs allowed to use the conservative IID provisioner. An empty list disables it."
+  default     = []
+
+  validation {
+    condition     = alltrue([for account in var.aws_iid_accounts : can(regex("^[0-9]{12}$", account))])
+    error_message = "Every AWS IID account must be a 12-digit account ID."
+  }
+}
+
+variable "aws_iid_dns_allowlist" {
+  type        = list(string)
+  description = "AWS internal DNS patterns allowed for IID-issued certificates, for example *.eu-central-1.compute.internal."
+  default     = []
+}
+
+variable "aws_iid_instance_age" {
+  type        = string
+  description = "Maximum age of an EC2 instance's IID at its initial enrollment."
+  default     = "5m"
+}
+
 variable "runtime_release_id" {
   type        = string
   description = "Increment for each reviewed config, public-certificate, or runtime image release."

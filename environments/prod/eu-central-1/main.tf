@@ -46,6 +46,7 @@ module "step_ca_ha" {
   cloudwatch_log_group_arn        = aws_cloudwatch_log_group.runtime.arn
   cloudwatch_log_group_name       = aws_cloudwatch_log_group.runtime.name
   database_secret_arn             = module.postgres.master_secret_arn
+  google_oidc_client_secret_arn   = try(var.google_oidc.client_secret_arn, null)
   runtime_release_id              = var.runtime_release_id
   allowed_https_cidrs             = var.allowed_https_cidrs
   acm_certificate_arn             = var.acm_certificate_arn
@@ -114,12 +115,50 @@ resource "aws_iam_role_policy" "runtime_kms" {
 }
 
 locals {
+  provisioners = concat(
+    var.google_oidc == null ? [] : [{
+      type                  = "OIDC"
+      name                  = "Google Workspace"
+      clientID              = var.google_oidc.client_id
+      clientSecret          = "$${GOOGLE_OIDC_CLIENT_SECRET}"
+      configurationEndpoint = "https://accounts.google.com/.well-known/openid-configuration"
+      domains               = [var.google_oidc.workspace_domain]
+      scopes                = ["openid", "email"]
+      listenAddress         = ":10000"
+      claims = {
+        maxTLSCertDuration     = "8h"
+        defaultTLSCertDuration = "8h"
+        disableRenewal         = true
+      }
+      options = {
+        x509 = {
+          templateFile = "/home/step/templates/google-workspace-x509.tpl"
+        }
+      }
+    }],
+    length(var.aws_iid_accounts) == 0 ? [] : [{
+      type                   = "AWS"
+      name                   = "AWS IID"
+      accounts               = var.aws_iid_accounts
+      disableCustomSANs      = true
+      disableTrustOnFirstUse = true
+      instanceAge            = var.aws_iid_instance_age
+      claims = {
+        maxTLSCertDuration     = "24h"
+        defaultTLSCertDuration = "24h"
+      }
+    }],
+  )
+
   ca_json = templatefile("${path.module}/../../../pki/config/ca-ha.json.tftpl", {
-    aws_region          = var.aws_region
-    ca_fqdn             = var.ca_fqdn
-    intermediate_key_id = module.kms_ca.intermediate_key_id
-    internal_dns_suffix = var.internal_dns_suffix
-    trust_domain        = var.trust_domain
+    aws_region           = var.aws_region
+    ca_fqdn              = var.ca_fqdn
+    intermediate_key_id  = module.kms_ca.intermediate_key_id
+    internal_dns_suffix  = var.internal_dns_suffix
+    trust_domain         = var.trust_domain
+    dns_allowlist_json   = jsonencode(concat(["*.${var.internal_dns_suffix}"], var.aws_iid_dns_allowlist))
+    email_allowlist_json = jsonencode(var.google_oidc == null ? [] : ["@${var.google_oidc.workspace_domain}"])
+    provisioners_json    = jsonencode(local.provisioners)
   })
 
   compose_file = templatefile("${path.module}/../../../pki/config/step-ca-ha-compose.yml.tftpl", {
@@ -132,11 +171,30 @@ locals {
   })
 }
 
+resource "terraform_data" "aws_iid_policy_guard" {
+  input = var.aws_iid_accounts
+
+  lifecycle {
+    precondition {
+      condition     = length(var.aws_iid_accounts) == 0 || length(var.aws_iid_dns_allowlist) > 0
+      error_message = "aws_iid_dns_allowlist must include the approved AWS internal DNS pattern when AWS IID is enabled."
+    }
+  }
+}
+
 resource "aws_s3_object" "ca_config" {
   bucket                 = module.step_ca_ha.artifact_bucket_name
   key                    = "runtime/step-ca/ca.json"
   content                = local.ca_json
   content_type           = "application/json"
+  server_side_encryption = "AES256"
+}
+
+resource "aws_s3_object" "google_oidc_template" {
+  bucket                 = module.step_ca_ha.artifact_bucket_name
+  key                    = "runtime/templates/google-workspace-x509.tpl"
+  content                = file("${path.module}/../../../pki/templates/google-workspace-x509.tpl")
+  content_type           = "text/plain"
   server_side_encryption = "AES256"
 }
 

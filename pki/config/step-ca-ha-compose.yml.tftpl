@@ -20,8 +20,9 @@ services:
     tmpfs:
       - /tmp:mode=1777,noexec,nosuid,size=64m
     volumes:
-      - /opt/pki/runtime/step-ca/ca.json:/home/step/config/ca.json:ro
+      - /opt/pki/runtime/step-ca/rendered-ca.json:/home/step/config/ca.json:ro
       - /opt/pki/runtime/certs:/etc/step-ca/certs:ro
+      - /opt/pki/runtime/templates:/home/step/templates:ro
       - /opt/pki/runtime/rds-ca-bundle.pem:/etc/ssl/certs/rds-ca-bundle.pem:ro
     expose:
       - "9000"

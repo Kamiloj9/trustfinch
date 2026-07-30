@@ -10,4 +10,14 @@ key_administrator_arns = ["arn:aws:iam::111122223333:role/pki-key-administrator"
 root_ceremony_role_arns = ["arn:aws:iam::111122223333:role/pki-root-ceremony"]
 certificate_publisher_role_arns = ["arn:aws:iam::111122223333:role/pki-root-ceremony"]
 
+# Optional: secret JSON must have a client_secret field. Increment
+# runtime_release_id after adding or changing any provisioner.
+# google_oidc = {
+#   client_id         = "replace.apps.googleusercontent.com"
+#   workspace_domain  = "example.com"
+#   client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
+# }
+# aws_iid_accounts      = ["111122223333"]
+# aws_iid_dns_allowlist = ["*.eu-central-1.compute.internal"]
+
 root_key_enabled = false

@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TERRAFORM_IMAGE="hashicorp/terraform@sha256:6bbb82d575aa7bd4f0a2c6e3a0838ab9590426c08a71d7a2783643f01004d356"
+STEP_CA_IMAGE="smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270"
 WORK_DIR="$(mktemp -d -t pki-terraform.XXXXXX)"
 
 cleanup() {
@@ -35,9 +36,11 @@ docker run --rm \
   -v "${WORK_DIR}:/work" \
   --entrypoint /bin/sh \
   "${TERRAFORM_IMAGE}" \
-  -ec 'mkdir -p /work/template-check; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/template-check -xf -; cd /work/template-check/tests/template-check; terraform init -backend=false -input=false; terraform apply -auto-approve -refresh=false -input=false -lock=false >/dev/null; terraform output -raw runtime_compose >/work/rendered-step-ca-compose.yml; terraform output -raw runtime_ha_compose >/work/rendered-step-ca-ha-compose.yml'
+  -ec 'mkdir -p /work/template-check; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/template-check -xf -; cd /work/template-check/tests/template-check; terraform init -backend=false -input=false; terraform apply -auto-approve -refresh=false -input=false -lock=false >/dev/null; terraform output -raw runtime_compose >/work/rendered-step-ca-compose.yml; terraform output -raw runtime_ha_compose >/work/rendered-step-ca-ha-compose.yml; terraform output -raw lean_runtime_bootstrap >/work/rendered-lean-runtime-bootstrap.sh; terraform output -raw ha_runtime_bootstrap >/work/rendered-ha-runtime-bootstrap.sh'
 
 docker compose -f "${WORK_DIR}/rendered-step-ca-compose.yml" config --quiet
 STEP_CA_DB_PASSWORD=local-validation-value docker compose -f "${WORK_DIR}/rendered-step-ca-ha-compose.yml" config --quiet
+docker run --rm -v "${WORK_DIR}:/work:ro" --entrypoint /bin/bash "${STEP_CA_IMAGE}" -n \
+  /work/rendered-lean-runtime-bootstrap.sh /work/rendered-ha-runtime-bootstrap.sh
 
 printf '%s\n' 'Terraform checks passed'

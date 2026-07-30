@@ -1,8 +1,8 @@
 # Self-hosted PKI on AWS
 
-This repository implements the secure, single-region **Lean / PoC** foundation from the project plan. It runs [step-ca](https://smallstep.com/docs/step-ca/) with an AWS KMS-backed intermediate CA key in AWS; no CA private key is stored in Terraform state, a container image, or the EC2 filesystem.
+This repository implements a secure self-hosted PKI foundation from the project plan. It runs [step-ca](https://smallstep.com/docs/step-ca/) with an AWS KMS-backed intermediate CA key in AWS; no CA private key is stored in Terraform state, a container image, or the EC2 filesystem.
 
-The foundation deliberately does not claim to be a production HA or multi-region deployment. Those profiles need the decisions recorded in the threat model, a PostgreSQL backend, and disaster-recovery exercises before enabling them.
+The Lean profile does not claim production HA or multi-region recovery. The production HA profile still requires the decisions recorded in the threat model, an approved provisioner configuration, and disaster-recovery exercises before use.
 
 ## What is included
 

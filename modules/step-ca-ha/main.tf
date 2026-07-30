@@ -184,10 +184,13 @@ resource "aws_s3_bucket_policy" "artifacts" {
 
 data "aws_iam_policy_document" "runtime_bootstrap" {
   statement {
-    sid       = "ReadManagedDatabaseSecret"
-    effect    = "Allow"
-    actions   = ["secretsmanager:GetSecretValue"]
-    resources = [var.database_secret_arn]
+    sid     = "ReadManagedRuntimeSecrets"
+    effect  = "Allow"
+    actions = ["secretsmanager:GetSecretValue"]
+    resources = concat(
+      [var.database_secret_arn],
+      var.google_oidc_client_secret_arn == null ? [] : [var.google_oidc_client_secret_arn],
+    )
   }
 
   statement {
@@ -274,10 +277,11 @@ resource "aws_launch_template" "this" {
   }
 
   user_data = base64encode(templatefile("${path.module}/templates/pki-runtime-ha.service.tftpl", {
-    artifact_bucket     = aws_s3_bucket.artifacts.id
-    aws_region          = var.aws_region
-    database_secret_arn = var.database_secret_arn
-    runtime_release_id  = var.runtime_release_id
+    artifact_bucket               = aws_s3_bucket.artifacts.id
+    aws_region                    = var.aws_region
+    database_secret_arn           = var.database_secret_arn
+    google_oidc_client_secret_arn = coalesce(var.google_oidc_client_secret_arn, "")
+    runtime_release_id            = var.runtime_release_id
   }))
 
   tag_specifications {

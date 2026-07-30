@@ -66,5 +66,13 @@ rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
   || fail "HA runtime must use an Auto Scaling rolling refresh"
 rg --quiet 'min_healthy_percentage\s*=\s*50' modules/step-ca-ha/main.tf \
   || fail "HA refresh must retain at least half of the capacity"
+rg --quiet 'google_oidc_client_secret_arn' modules/step-ca-ec2/main.tf \
+  || fail "Lean runtime must scope Google OIDC secret access"
+rg --quiet 'google_oidc_client_secret_arn' modules/step-ca-ha/main.tf \
+  || fail "HA runtime must scope Google OIDC secret access"
+for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
+  rg --quiet 'rendered-ca.json' "${compose_template}" \
+    || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"
+done
 
 printf '%s\n' 'static checks passed'
