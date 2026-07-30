@@ -131,6 +131,10 @@ rg --quiet 'max_attempts' clients/step-renewer/renew-step-certificate.sh \
   || fail "renewal helper must use bounded retry attempts"
 rg --quiet 'RandomizedDelaySec' clients/step-renewer/systemd/pki-certificate-renew.timer \
   || fail "renewal timer must add scheduling jitter"
+rg --quiet 'step ca revoke' tests/test-local-ca.sh \
+  || fail "local CA integration must prove passive revocation blocks renewal"
+rg --quiet 'passive revocation' runbooks/revocation.md \
+  || fail "revocation model must be documented honestly"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"

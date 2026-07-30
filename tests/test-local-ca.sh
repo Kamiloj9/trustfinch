@@ -71,6 +71,25 @@ docker run --rm \
       exit 1
     fi
 
+    step ca certificate revoked.pki.test /tmp/revoked.crt /tmp/revoked.key \
+      --ca-url "${ca_url}" \
+      --root "${root}" \
+      --provisioner local-test \
+      --provisioner-password-file "${password_file}"
+    step ca revoke \
+      --cert /tmp/revoked.crt \
+      --key /tmp/revoked.key \
+      --ca-url "${ca_url}" \
+      --root "${root}"
+    if step ca renew \
+      --force \
+      --ca-url "${ca_url}" \
+      --root "${root}" \
+      /tmp/revoked.crt /tmp/revoked.key; then
+      printf "%s\\n" "passively revoked certificate was unexpectedly renewed" >&2
+      exit 1
+    fi
+
     cp /tmp/renewable.crt /tmp/renewable-before-failure.crt
     if PKI_CERTIFICATE_PATH=/tmp/renewable.crt \
       PKI_PRIVATE_KEY_PATH=/tmp/renewable.key \

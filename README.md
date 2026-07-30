@@ -14,6 +14,7 @@ The Lean profile does not claim production HA or multi-region recovery. The prod
 - A production single-region profile with two private CA nodes, ALB, RDS PostgreSQL Multi-AZ, AWS-managed database credentials, and verified RDS TLS. Its Docker test uses the same PostgreSQL backend locally.
 - An independent EU West HA profile with its own intermediate, state, and database, plus a global Route 53 primary/secondary alias environment. The regional profiles never create a second root.
 - A reusable workload renewal helper with bounded retry, jittered scheduling, chain verification, and atomic certificate replacement.
+- A passive-revocation runbook and local acceptance check proving revocation blocks future renewal within the short certificate lifetime.
 - Acceptance checks that run with Docker on a developer machine: `make test`.
 
 ## Start here
