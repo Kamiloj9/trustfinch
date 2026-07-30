@@ -1,7 +1,7 @@
 services:
   step-ca:
     image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
-    entrypoint: ["/usr/local/bin/step-ca"]
+    entrypoint: ["/usr/bin/env", "bash", "/usr/local/bin/pki-step-ca-entrypoint"]
     command: ["/home/step/config/ca.json"]
     restart: unless-stopped
     environment:
@@ -14,6 +14,8 @@ services:
       - /tmp:mode=1777,noexec,nosuid,size=64m
     volumes:
       - /opt/pki/runtime/step-ca/rendered-ca.json:/home/step/config/ca.json:ro
+      - /opt/pki/runtime/step-ca/step-ca-entrypoint.sh:/usr/local/bin/pki-step-ca-entrypoint:ro
+      - /opt/pki/runtime/step-ca/redact-step-ca-logs.sh:/usr/local/bin/pki-redact-step-ca-logs:ro
       - /opt/pki/runtime/certs:/etc/step-ca/certs:ro
       - /opt/pki/runtime/templates:/home/step/templates:ro
       - /var/lib/step-ca:/home/step/db

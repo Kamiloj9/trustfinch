@@ -135,6 +135,22 @@ rg --quiet 'step ca revoke' tests/test-local-ca.sh \
   || fail "local CA integration must prove passive revocation blocks renewal"
 rg --quiet 'passive revocation' runbooks/revocation.md \
   || fail "revocation model must be documented honestly"
+for runtime_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
+  rg --quiet 'pki-step-ca-entrypoint' "${runtime_template}" \
+    || fail "step-ca runtime must use the log-redacting entrypoint: ${runtime_template}"
+  rg --quiet 'pki-redact-step-ca-logs' "${runtime_template}" \
+    || fail "step-ca runtime must mount the log redactor: ${runtime_template}"
+done
+rg --quiet 'ott=' pki/runtime/redact-step-ca-logs.sh \
+  || fail "step-ca log redactor must remove one-time tokens"
+for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
+  rg --quiet 'runtime/step-ca/step-ca-entrypoint\.sh' "${environment}/main.tf" \
+    || fail "runtime must publish the log-redacting entrypoint: ${environment}"
+  rg --quiet 'runtime/step-ca/redact-step-ca-logs\.sh' "${environment}/main.tf" \
+    || fail "runtime must publish the log redactor: ${environment}"
+done
+bash -n pki/runtime/step-ca-entrypoint.sh pki/runtime/redact-step-ca-logs.sh \
+  || fail "step-ca log-boundary scripts must have valid Bash syntax"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"

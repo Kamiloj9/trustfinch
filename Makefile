@@ -1,17 +1,20 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help test test-static test-runtime-bootstrap test-iac test-integration format
+.PHONY: help test test-static test-runtime-bootstrap test-log-redaction test-iac test-integration format
 
 help:
-	@printf '%s\n' 'Targets:' '  make test              Run every local Docker-based check' '  make test-static       Check repository security invariants' '  make test-runtime-bootstrap Verify the Amazon Linux runtime prerequisites' '  make test-iac          Format and validate Terraform in Docker' '  make test-integration  Run disposable local step-ca issuance tests' '  make format            Format Terraform in Docker'
+	@printf '%s\n' 'Targets:' '  make test              Run every local Docker-based check' '  make test-static       Check repository security invariants' '  make test-runtime-bootstrap Verify the Amazon Linux runtime prerequisites' '  make test-log-redaction Verify CA logs redact one-time tokens' '  make test-iac          Format and validate Terraform in Docker' '  make test-integration  Run disposable local step-ca issuance tests' '  make format            Format Terraform in Docker'
 
-test: test-static test-runtime-bootstrap test-iac test-integration
+test: test-static test-runtime-bootstrap test-log-redaction test-iac test-integration
 
 test-static:
 	@./tests/test-static.sh
 
 test-runtime-bootstrap:
 	@./tests/test-runtime-bootstrap.sh
+
+test-log-redaction:
+	@./tests/test-log-redaction.sh
 
 test-iac:
 	@./tests/test-iac.sh

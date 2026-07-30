@@ -247,6 +247,22 @@ resource "aws_s3_object" "ca_config" {
   server_side_encryption = "AES256"
 }
 
+resource "aws_s3_object" "step_ca_entrypoint" {
+  bucket                 = module.step_ca_ha.artifact_bucket_name
+  key                    = "runtime/step-ca/step-ca-entrypoint.sh"
+  content                = file("${path.module}/../../../pki/runtime/step-ca-entrypoint.sh")
+  content_type           = "text/x-shellscript"
+  server_side_encryption = "AES256"
+}
+
+resource "aws_s3_object" "step_ca_log_redactor" {
+  bucket                 = module.step_ca_ha.artifact_bucket_name
+  key                    = "runtime/step-ca/redact-step-ca-logs.sh"
+  content                = file("${path.module}/../../../pki/runtime/redact-step-ca-logs.sh")
+  content_type           = "text/x-shellscript"
+  server_side_encryption = "AES256"
+}
+
 resource "terraform_data" "aws_iid_policy_guard" {
   input = var.aws_iid_accounts
 
