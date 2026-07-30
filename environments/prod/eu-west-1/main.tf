@@ -107,6 +107,7 @@ module "observability" {
   load_balancer_arn_suffix              = module.step_ca_ha.load_balancer_arn_suffix
   target_group_arn_suffix               = module.step_ca_ha.target_group_arn_suffix
   database_instance_identifier          = module.postgres.instance_identifier
+  host_disk_metric_pki_name             = var.name
   alarm_actions                         = var.alarm_actions
   tags                                  = local.tags
 }

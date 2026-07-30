@@ -57,6 +57,13 @@ variable "database_instance_identifier" {
   nullable    = true
 }
 
+variable "host_disk_metric_pki_name" {
+  type        = string
+  description = "Optional PKIName dimension emitted by the CloudWatch Agent root-filesystem rollup."
+  default     = null
+  nullable    = true
+}
+
 variable "alarm_actions" {
   type        = list(string)
   description = "Optional SNS or incident-management alarm action ARNs."

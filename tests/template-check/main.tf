@@ -54,6 +54,7 @@ locals {
     cloudwatch_log_group_name     = "/pki/test/runtime"
     google_oidc_client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
     gitlab_broker_jwk_secret_arn  = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker"
+    pki_name                      = "pki-test"
   })
 
   ha_runtime_bootstrap = templatefile("${path.module}/../../modules/step-ca-ha/templates/pki-runtime-ha.service.tftpl", {
@@ -63,6 +64,7 @@ locals {
     google_oidc_client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
     gitlab_broker_jwk_secret_arn  = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker"
     runtime_release_id            = "test-release"
+    pki_name                      = "pki-test"
   })
 
   google_oidc_config = jsondecode(templatefile("${path.module}/../../pki/config/ca.json.tftpl", {

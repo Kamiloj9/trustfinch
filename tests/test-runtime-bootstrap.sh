@@ -14,7 +14,8 @@ docker run --rm \
   "${AMAZON_LINUX_IMAGE}" \
   -ec '
     command -v curl >/dev/null
-    dnf install -y docker gettext >/dev/null
+    dnf install -y docker gettext amazon-cloudwatch-agent >/dev/null 2>&1
+    rpm -q amazon-cloudwatch-agent >/dev/null
     install -d -m 0755 /usr/local/lib/docker/cli-plugins
     curl --fail --silent --show-error --location \
       --output /usr/local/lib/docker/cli-plugins/docker-compose \

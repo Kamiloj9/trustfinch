@@ -39,6 +39,11 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
+  role       = aws_iam_role.runtime.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 data "aws_iam_policy_document" "runtime_google_oidc_secret" {
   count = var.google_oidc_client_secret_arn == null ? 0 : 1
 
@@ -230,6 +235,7 @@ resource "aws_instance" "runtime" {
     cloudwatch_log_group_name     = var.cloudwatch_log_group_name
     google_oidc_client_secret_arn = coalesce(var.google_oidc_client_secret_arn, "")
     gitlab_broker_jwk_secret_arn  = coalesce(var.gitlab_broker_jwk_secret_arn, "")
+    pki_name                      = var.name
   })
 
   tags = merge(var.tags, {

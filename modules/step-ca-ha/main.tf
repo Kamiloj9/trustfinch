@@ -37,6 +37,11 @@ resource "aws_iam_role_policy_attachment" "ssm_core" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
+resource "aws_iam_role_policy_attachment" "cloudwatch_agent" {
+  role       = aws_iam_role.runtime.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+}
+
 resource "aws_security_group" "alb" {
   name_prefix = "${var.name}-step-ca-alb-"
   description = "HTTPS to the step-ca ALB."
@@ -385,6 +390,7 @@ resource "aws_launch_template" "this" {
     google_oidc_client_secret_arn = coalesce(var.google_oidc_client_secret_arn, "")
     gitlab_broker_jwk_secret_arn  = coalesce(var.gitlab_broker_jwk_secret_arn, "")
     runtime_release_id            = var.runtime_release_id
+    pki_name                      = var.name
   }))
 
   tag_specifications {

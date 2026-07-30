@@ -167,6 +167,18 @@ rg --quiet 'HTTPCode_Target_5XX_Count' modules/observability/main.tf \
   || fail "observability must alert on ALB target 5xx responses"
 rg --quiet 'FreeStorageSpace' modules/observability/main.tf \
   || fail "observability must alert on low RDS storage"
+rg --quiet 'disk_used_percent' modules/observability/main.tf \
+  || fail "observability must alert on PKI host disk use"
+for runtime_template in modules/step-ca-ec2/templates/pki-runtime.service.tftpl modules/step-ca-ha/templates/pki-runtime-ha.service.tftpl; do
+  rg --quiet 'amazon-cloudwatch-agent' "${runtime_template}" \
+    || fail "PKI runtime must install the CloudWatch Agent: ${runtime_template}"
+  rg --quiet 'PKIName' "${runtime_template}" \
+    || fail "PKI host metrics must be rolled up by PKI name: ${runtime_template}"
+done
+rg --quiet 'CloudWatchAgentServerPolicy' modules/step-ca-ec2/main.tf \
+  || fail "Lean runtime must authorize CloudWatch Agent metrics"
+rg --quiet 'CloudWatchAgentServerPolicy' modules/step-ca-ha/main.tf \
+  || fail "HA runtime must authorize CloudWatch Agent metrics"
 rg --quiet 'aws_wafv2_web_acl' modules/step-ca-ha/main.tf \
   || fail "HA deployment must protect the public ALB with WAF"
 rg --quiet 'aggregate_key_type[[:space:]]*=[[:space:]]*"IP"' modules/step-ca-ha/main.tf \

@@ -434,3 +434,25 @@ resource "aws_cloudwatch_metric_alarm" "database_free_storage" {
 
   tags = var.tags
 }
+
+resource "aws_cloudwatch_metric_alarm" "host_disk_used" {
+  count = var.host_disk_metric_pki_name == null ? 0 : 1
+
+  alarm_name          = "${var.name}-host-disk-used"
+  alarm_description   = "The PKI runtime root filesystem is at least 85% used; protect CA availability before it fills."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 3
+  metric_name         = "disk_used_percent"
+  namespace           = "PKI/Host"
+  period              = 300
+  statistic           = "Maximum"
+  threshold           = 85
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  dimensions = {
+    PKIName = var.host_disk_metric_pki_name
+  }
+
+  tags = var.tags
+}

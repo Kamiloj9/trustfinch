@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-dnf install -y docker awscli2 python3 gettext
+dnf install -y docker awscli2 python3 gettext amazon-cloudwatch-agent
 install -d -m 0755 /usr/local/lib/docker/cli-plugins
 curl --fail --silent --show-error --location \
   --output /usr/local/lib/docker/cli-plugins/docker-compose \
@@ -10,6 +10,34 @@ echo 'aa611e811d0ea25897839c404bfb5bf93ce706dc51c500a4457890f5d0606a86  /usr/loc
 chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
 docker compose version
 systemctl enable --now docker
+
+install -d -m 0755 /opt/aws/amazon-cloudwatch-agent/etc
+cat >/opt/aws/amazon-cloudwatch-agent/etc/pki-host-metrics.json <<'JSON'
+{
+  "agent": {
+    "metrics_collection_interval": 60
+  },
+  "metrics": {
+    "namespace": "PKI/Host",
+    "aggregation_dimensions": [["PKIName"]],
+    "metrics_collected": {
+      "disk": {
+        "resources": ["/"],
+        "measurement": ["used_percent"],
+        "metrics_collection_interval": 60,
+        "ignore_file_system_types": ["sysfs", "devtmpfs", "tmpfs", "overlay", "squashfs"],
+        "append_dimensions": {
+          "PKIName": "${pki_name}"
+        }
+      }
+    }
+  }
+}
+JSON
+/opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl \
+  -a fetch-config -m ec2 -s \
+  -c file:/opt/aws/amazon-cloudwatch-agent/etc/pki-host-metrics.json
+systemctl enable amazon-cloudwatch-agent
 
 install -d -m 0750 /opt/pki/runtime /var/lib/step-ca
 # The pinned step-ca image runs as uid:gid 1000:1000. The Badger directory is

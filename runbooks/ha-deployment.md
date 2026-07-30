@@ -7,7 +7,7 @@ This runbook applies to `environments/prod/eu-central-1`; it is not a shortcut f
 3. Copy `terraform.tfvars.example` and `backend.hcl.example` outside Git. Use short-lived AWS credentials and a reviewed plan.
 4. Apply with `root_key_enabled = false`. This creates the multi-AZ network, ALB, two-node ASG, RDS PostgreSQL Multi-AZ, audit trail, and restricted artifact bucket.
 5. In a time-bounded ceremony change, enable the root, create the public root/intermediate certificates, publish them to the production artifact bucket, and disable the root again. Confirm the root-sign CloudTrail alarm.
-6. Verify each ALB target becomes healthy, confirm the ALB/RDS CloudWatch alarms are present, and inspect `step-ca` logs for PostgreSQL `verify-full` connectivity. The base profile has no provisioner; install an approved, restricted provisioner before attempting issuance.
+6. Verify each ALB target becomes healthy, confirm the ALB/RDS/host-disk CloudWatch alarms are present, and inspect `step-ca` logs for PostgreSQL `verify-full` connectivity. The base profile has no provisioner; install an approved, restricted provisioner before attempting issuance.
 7. After that provisioner is deployed, simulate one node loss. Verify the ALB removes it, the ASG replaces it, and restricted issuance continues. Record the RDS backup/restore exercise separately before declaring the environment production ready.
 
 The public ALB has a WAF rule that blocks a source IP after 500 requests over five minutes. WAF rate limiting is approximate, not a precise quota: tune `waf_rate_limit` only after measuring client-NAT fan-out and legitimate enrollment bursts. Its request sampling is disabled so enrollment material is not retained by WAF.
