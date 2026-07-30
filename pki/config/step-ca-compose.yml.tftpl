@@ -19,12 +19,46 @@ services:
       - /var/lib/step-ca:/home/step/db
     expose:
       - "9000"
+    networks:
+      default:
+        aliases:
+          - ${ca_fqdn}
     logging:
       driver: awslogs
       options:
         awslogs-region: ${aws_region}
         awslogs-group: ${cloudwatch_log_group}
         awslogs-stream: step-ca
+
+%{ if gitlab_broker_enabled ~}
+  gitlab-enrollment-broker:
+    image: ${gitlab_broker_image}
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777,noexec,nosuid,size=32m
+    environment:
+      AWS_REGION: ${aws_region}
+      AWS_DEFAULT_REGION: ${aws_region}
+      BROKER_CONFIG: /etc/gitlab-enrollment-broker/config.json
+      BROKER_JWK_PATH: /run/secrets/gitlab-broker.jwk
+      BROKER_CA_ROOT_PATH: /etc/step-ca/certs/root_ca.crt
+      BROKER_REPLAY_STORE: dynamodb
+    volumes:
+      - /opt/pki/runtime/gitlab-broker/config.json:/etc/gitlab-enrollment-broker/config.json:ro
+      - /opt/pki/runtime/secrets/gitlab-broker.jwk:/run/secrets/gitlab-broker.jwk:ro
+      - /opt/pki/runtime/certs/root_ca.crt:/etc/step-ca/certs/root_ca.crt:ro
+    depends_on:
+      - step-ca
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${aws_region}
+        awslogs-group: ${cloudwatch_log_group}
+        awslogs-stream: gitlab-enrollment-broker
+%{ endif ~}
 
   caddy:
     image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d

@@ -37,6 +37,19 @@ variable "google_oidc_client_secret_arn" {
   nullable    = true
 }
 
+variable "gitlab_broker_jwk_secret_arn" {
+  type        = string
+  description = "Optional Secrets Manager ARN containing the private P-256 JWK used only by the GitLab enrollment broker."
+  default     = null
+  nullable    = true
+}
+
+variable "gitlab_broker_enabled" {
+  type        = bool
+  description = "Expose the GitLab enrollment broker through a dedicated ALB target group."
+  default     = false
+}
+
 variable "runtime_release_id" {
   type        = string
   description = "Reviewed runtime-artifact release identifier. Changing it performs a rolling ASG refresh."

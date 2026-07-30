@@ -52,7 +52,17 @@ module "step_ca_ec2" {
   allowed_https_cidrs             = var.allowed_https_cidrs
   certificate_publisher_role_arns = var.certificate_publisher_role_arns
   google_oidc_client_secret_arn   = try(var.google_oidc.client_secret_arn, null)
+  gitlab_broker_jwk_secret_arn    = try(var.gitlab_oidc.broker_jwk_secret_arn, null)
   tags                            = local.tags
+}
+
+module "gitlab_enrollment_replay" {
+  count  = var.gitlab_oidc == null ? 0 : 1
+  source = "../../../modules/gitlab-enrollment-replay"
+
+  name              = var.name
+  runtime_role_name = module.step_ca_ec2.runtime_role_name
+  tags              = local.tags
 }
 
 module "kms_ca" {
@@ -136,7 +146,29 @@ locals {
         defaultTLSCertDuration = "24h"
       }
     }],
+    var.gitlab_oidc == null ? [] : [{
+      type = "JWK"
+      name = "GitLab Enrollment Broker"
+      key  = var.gitlab_oidc.broker_jwk_public
+      claims = {
+        maxTLSCertDuration     = "1h"
+        defaultTLSCertDuration = "1h"
+        disableRenewal         = true
+      }
+    }],
   )
+
+  gitlab_broker_config_json = var.gitlab_oidc == null ? null : jsonencode({
+    issuer                    = var.gitlab_oidc.issuer
+    discovery_url             = "${var.gitlab_oidc.issuer}/.well-known/openid-configuration"
+    replay_table_name         = module.gitlab_enrollment_replay[0].table_name
+    ca_url                    = "https://${var.ca_fqdn}:9000"
+    ca_server_name            = var.ca_fqdn
+    ca_sign_audience          = "https://${var.ca_fqdn}/1.0/sign#GitLab%20Enrollment%20Broker:${var.gitlab_oidc.broker_jwk_public.kid}"
+    broker_provisioner_name   = "GitLab Enrollment Broker"
+    max_gitlab_token_lifetime = "1h"
+    identities                = var.gitlab_oidc.identities
+  })
 
   ca_json = templatefile("${path.module}/../../../pki/config/ca.json.tftpl", {
     aws_region           = var.aws_region
@@ -150,12 +182,16 @@ locals {
   })
 
   compose_file = templatefile("${path.module}/../../../pki/config/step-ca-compose.yml.tftpl", {
-    aws_region           = var.aws_region
-    cloudwatch_log_group = aws_cloudwatch_log_group.runtime.name
+    aws_region            = var.aws_region
+    cloudwatch_log_group  = aws_cloudwatch_log_group.runtime.name
+    ca_fqdn               = var.ca_fqdn
+    gitlab_broker_enabled = var.gitlab_oidc != null
+    gitlab_broker_image   = try(var.gitlab_oidc.broker_image, "")
   })
 
   caddyfile = templatefile("${path.module}/../../../pki/config/Caddyfile.tftpl", {
-    ca_fqdn = var.ca_fqdn
+    ca_fqdn               = var.ca_fqdn
+    gitlab_broker_enabled = var.gitlab_oidc != null
   })
 }
 
@@ -166,6 +202,17 @@ resource "terraform_data" "aws_iid_policy_guard" {
     precondition {
       condition     = length(var.aws_iid_accounts) == 0 || length(var.aws_iid_dns_allowlist) > 0
       error_message = "aws_iid_dns_allowlist must include the approved AWS internal DNS pattern when AWS IID is enabled."
+    }
+  }
+}
+
+resource "terraform_data" "gitlab_oidc_policy_guard" {
+  input = var.gitlab_oidc
+
+  lifecycle {
+    precondition {
+      condition     = var.gitlab_oidc == null || length(distinct([for identity in var.gitlab_oidc.identities : join("|", [identity.project_id, identity.audience, identity.ref_type, identity.ref])])) == length(var.gitlab_oidc.identities)
+      error_message = "Every GitLab enrollment identity must have a unique project ID, audience, ref type, and ref mapping."
     }
   }
 }
@@ -183,6 +230,16 @@ resource "aws_s3_object" "google_oidc_template" {
   key                    = "runtime/templates/google-workspace-x509.tpl"
   content                = file("${path.module}/../../../pki/templates/google-workspace-x509.tpl")
   content_type           = "text/plain"
+  server_side_encryption = "AES256"
+}
+
+resource "aws_s3_object" "gitlab_broker_config" {
+  count = var.gitlab_oidc == null ? 0 : 1
+
+  bucket                 = module.step_ca_ec2.artifact_bucket_name
+  key                    = "runtime/gitlab-broker/config.json"
+  content                = local.gitlab_broker_config_json
+  content_type           = "application/json"
   server_side_encryption = "AES256"
 }
 

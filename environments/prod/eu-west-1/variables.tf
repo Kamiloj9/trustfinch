@@ -23,6 +23,45 @@ variable "google_oidc" {
   nullable = true
 }
 
+variable "gitlab_oidc" {
+  type = object({
+    issuer                = string
+    broker_image          = string
+    broker_jwk_secret_arn = string
+    broker_jwk_public = object({
+      kty = string
+      crv = string
+      x   = string
+      y   = string
+      kid = string
+    })
+    identities = list(object({
+      project_id   = string
+      project_path = string
+      audience     = string
+      ref_type     = string
+      ref          = string
+      subject      = string
+      uri_san      = string
+    }))
+  })
+  description = "Optional protected-ref GitLab CI enrollment through the replay-protected broker. The private JWK stays in the referenced Secrets Manager secret."
+  default     = null
+  nullable    = true
+
+  validation {
+    condition = var.gitlab_oidc == null || (
+      can(regex("^https://", var.gitlab_oidc.issuer)) &&
+      can(regex("^.+@sha256:[0-9a-f]{64}$", var.gitlab_oidc.broker_image)) &&
+      var.gitlab_oidc.broker_jwk_public.kty == "EC" &&
+      var.gitlab_oidc.broker_jwk_public.crv == "P-256" &&
+      length(var.gitlab_oidc.identities) > 0 &&
+      alltrue([for identity in var.gitlab_oidc.identities : can(regex("^[0-9]+$", identity.project_id)) && can(regex("^https://", identity.audience)) && contains(["branch", "tag"], identity.ref_type) && can(regex("^spiffe://", identity.uri_san))])
+    )
+    error_message = "GitLab OIDC requires an HTTPS issuer, digest-pinned broker image, P-256 public JWK, and at least one valid protected-ref identity mapping."
+  }
+}
+
 variable "aws_iid_accounts" {
   type    = list(string)
   default = []

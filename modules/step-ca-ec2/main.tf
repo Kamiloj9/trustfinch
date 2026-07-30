@@ -58,6 +58,25 @@ resource "aws_iam_role_policy" "runtime_google_oidc_secret" {
   policy = data.aws_iam_policy_document.runtime_google_oidc_secret[0].json
 }
 
+data "aws_iam_policy_document" "runtime_gitlab_broker_jwk_secret" {
+  count = var.gitlab_broker_jwk_secret_arn == null ? 0 : 1
+
+  statement {
+    sid       = "ReadGitLabBrokerSigningJWK"
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [var.gitlab_broker_jwk_secret_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "runtime_gitlab_broker_jwk_secret" {
+  count = var.gitlab_broker_jwk_secret_arn == null ? 0 : 1
+
+  name   = "step-ca-gitlab-broker-jwk"
+  role   = aws_iam_role.runtime.name
+  policy = data.aws_iam_policy_document.runtime_gitlab_broker_jwk_secret[0].json
+}
+
 resource "aws_s3_bucket" "artifacts" {
   bucket_prefix = "${var.name}-pki-artifacts-"
 
@@ -204,6 +223,7 @@ resource "aws_instance" "runtime" {
     artifact_bucket               = aws_s3_bucket.artifacts.id
     cloudwatch_log_group_name     = var.cloudwatch_log_group_name
     google_oidc_client_secret_arn = coalesce(var.google_oidc_client_secret_arn, "")
+    gitlab_broker_jwk_secret_arn  = coalesce(var.gitlab_broker_jwk_secret_arn, "")
   })
 
   tags = merge(var.tags, {

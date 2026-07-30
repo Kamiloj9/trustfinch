@@ -25,6 +25,13 @@ variable "google_oidc_client_secret_arn" {
   nullable    = true
 }
 
+variable "gitlab_broker_jwk_secret_arn" {
+  type        = string
+  description = "Optional Secrets Manager ARN containing the private P-256 JWK used only by the GitLab enrollment broker."
+  default     = null
+  nullable    = true
+}
+
 variable "ami_id" {
   type        = string
   description = "Optional ARM64 Amazon Linux 2023 AMI ID. Null uses AWS's public SSM parameter."

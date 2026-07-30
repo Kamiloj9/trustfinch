@@ -14,6 +14,19 @@ allowed_https_cidrs = ["203.0.113.0/24"]
 #   workspace_domain  = "example.com"
 #   client_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/google-oidc"
 # }
+# Optional: the secret value is a raw private P-256 JWK. Build and publish the
+# broker image first; use an immutable digest. Every allowed protected ref gets
+# an explicit, fixed SPIFFE identity and GitLab ID-token audience.
+# gitlab_oidc = {
+#   issuer                = "https://gitlab.com"
+#   broker_image          = "111122223333.dkr.ecr.eu-central-1.amazonaws.com/pki-gitlab-broker@sha256:replace-with-64-hex-digest"
+#   broker_jwk_secret_arn = "arn:aws:secretsmanager:eu-central-1:111122223333:secret:pki/gitlab-broker-jwk"
+#   broker_jwk_public     = { kty = "EC", crv = "P-256", x = "replace", y = "replace", kid = "gitlab-broker-2026-07" }
+#   identities = [{
+#     project_id = "12345", project_path = "platform/pki", audience = "https://ca.dev.example.internal/gitlab/platform-pki"
+#     ref_type = "branch", ref = "main", subject = "gitlab:platform/pki", uri_san = "spiffe://dev.example.internal/gitlab/platform/pki"
+#   }]
+# }
 # aws_iid_accounts      = ["111122223333"]
 # aws_iid_dns_allowlist = ["*.eu-central-1.compute.internal"]
 

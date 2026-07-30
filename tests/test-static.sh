@@ -35,8 +35,13 @@ docker run --rm -v "${ROOT_DIR}:/workspace:ro" --entrypoint /bin/bash "${STEP_CA
   "${shell_files[@]}"
 
 while IFS= read -r image; do
+  [[ "${image}" == *'${'* ]] && continue
   [[ "${image}" == *@sha256:* ]] || fail "container image is not digest-pinned: ${image}"
 done < <(rg --no-filename '^\s*image:' docker-compose.local.yml docker-compose.ha-local.yml pki/config | sed -E 's/.*image:[[:space:]]*//')
+
+while IFS= read -r image; do
+  [[ "${image}" == *@sha256:* ]] || fail "Dockerfile base image is not digest-pinned: ${image}"
+done < <(rg --no-filename '^FROM ' -g 'Dockerfile*' | awk '{print $2}')
 
 if rg -i --glob '*.tf' 'tls_private_key|private_key_pem|private_key' modules environments; then
   fail "Terraform must not manage or carry a CA private key"
@@ -78,6 +83,14 @@ rg --quiet 'google_oidc_client_secret_arn' modules/step-ca-ec2/main.tf \
   || fail "Lean runtime must scope Google OIDC secret access"
 rg --quiet 'google_oidc_client_secret_arn' modules/step-ca-ha/main.tf \
   || fail "HA runtime must scope Google OIDC secret access"
+rg --quiet 'gitlab_broker_jwk_secret_arn' modules/step-ca-ec2/main.tf \
+  || fail "Lean runtime must scope GitLab broker key access"
+rg --quiet 'gitlab_broker_jwk_secret_arn' modules/step-ca-ha/main.tf \
+  || fail "HA runtime must scope GitLab broker key access"
+rg --quiet 'attribute_not_exists\(jti\)' broker/internal/enrollment/replay.go \
+  || fail "GitLab enrollment must atomically reject replayed token IDs"
+rg --quiet 'ref_protected' broker/internal/enrollment/jwt.go \
+  || fail "GitLab enrollment must check protected refs"
 for compose_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-ha-compose.yml.tftpl; do
   rg --quiet 'rendered-ca.json' "${compose_template}" \
     || fail "runtime must mount the locally rendered CA configuration: ${compose_template}"

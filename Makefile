@@ -19,6 +19,7 @@ test-iac:
 test-integration:
 	@./tests/test-local-ca.sh
 	@./tests/test-local-ha.sh
+	@./tests/test-gitlab-broker.sh
 
 format:
 	@docker run --rm -v "$(CURDIR):/workspace" -w /workspace hashicorp/terraform@sha256:6bbb82d575aa7bd4f0a2c6e3a0838ab9590426c08a71d7a2783643f01004d356 fmt -recursive

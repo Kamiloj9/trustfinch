@@ -31,6 +31,8 @@ TimeoutStartSec=0
 ExecStartPre=/usr/bin/mkdir -p /opt/pki/runtime /var/lib/step-ca
 ExecStartPre=/usr/bin/aws s3 sync s3://${artifact_bucket}/runtime /opt/pki/runtime --exact-timestamps
 ExecStartPre=/usr/bin/bash -c 'secret_arn="${google_oidc_client_secret_arn}"; if [[ -n "$secret_arn" ]]; then GOOGLE_OIDC_CLIENT_SECRET="$(/usr/bin/aws secretsmanager get-secret-value --secret-id "$secret_arn" --query SecretString --output text | /usr/bin/python3 -c "import json,sys; print(json.load(sys.stdin)[\"client_secret\"], end=\"\")")" /usr/bin/envsubst < /opt/pki/runtime/step-ca/ca.json > /opt/pki/runtime/step-ca/rendered-ca.json; else cp /opt/pki/runtime/step-ca/ca.json /opt/pki/runtime/step-ca/rendered-ca.json; fi; chown 1000:1000 /opt/pki/runtime/step-ca/rendered-ca.json; chmod 0600 /opt/pki/runtime/step-ca/rendered-ca.json'
+ExecStartPre=/usr/bin/rm -f /opt/pki/runtime/secrets/gitlab-broker.jwk
+ExecStartPre=/usr/bin/bash -c 'secret_arn="${gitlab_broker_jwk_secret_arn}"; if [[ -n "$secret_arn" ]]; then /usr/bin/install -d -m 0700 /opt/pki/runtime/secrets && /usr/bin/aws secretsmanager get-secret-value --secret-id "$secret_arn" --query SecretString --output text > /opt/pki/runtime/secrets/gitlab-broker.jwk && /usr/bin/chown 65532:65532 /opt/pki/runtime/secrets/gitlab-broker.jwk && /usr/bin/chmod 0400 /opt/pki/runtime/secrets/gitlab-broker.jwk; fi'
 ExecStart=/usr/bin/docker compose -f /opt/pki/runtime/step-ca-compose.yml up --remove-orphans
 ExecStop=/usr/bin/docker compose -f /opt/pki/runtime/step-ca-compose.yml down
 

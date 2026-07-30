@@ -77,6 +77,18 @@ resource "aws_security_group" "nodes" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  dynamic "ingress" {
+    for_each = var.gitlab_broker_enabled ? [1] : []
+
+    content {
+      description     = "ALB to GitLab enrollment broker"
+      from_port       = 8080
+      to_port         = 8080
+      protocol        = "tcp"
+      security_groups = [aws_security_group.alb.id]
+    }
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -190,6 +202,7 @@ data "aws_iam_policy_document" "runtime_bootstrap" {
     resources = concat(
       [var.database_secret_arn],
       var.google_oidc_client_secret_arn == null ? [] : [var.google_oidc_client_secret_arn],
+      var.gitlab_broker_jwk_secret_arn == null ? [] : [var.gitlab_broker_jwk_secret_arn],
     )
   }
 
@@ -235,6 +248,25 @@ resource "aws_lb_target_group" "this" {
   tags = var.tags
 }
 
+resource "aws_lb_target_group" "gitlab_broker" {
+  count = var.gitlab_broker_enabled ? 1 : 0
+
+  name_prefix = "${substr(var.name, 0, 16)}-gl-"
+  port        = 8080
+  protocol    = "HTTP"
+  target_type = "instance"
+  vpc_id      = var.vpc_id
+
+  health_check {
+    enabled  = true
+    protocol = "HTTP"
+    path     = "/health"
+    matcher  = "200"
+  }
+
+  tags = var.tags
+}
+
 resource "aws_lb_listener" "https" {
   load_balancer_arn = aws_lb.this.arn
   port              = 443
@@ -245,6 +277,24 @@ resource "aws_lb_listener" "https" {
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.this.arn
+  }
+}
+
+resource "aws_lb_listener_rule" "gitlab_broker" {
+  count = var.gitlab_broker_enabled ? 1 : 0
+
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.gitlab_broker[0].arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/1.0/enroll/gitlab"]
+    }
   }
 }
 
@@ -281,6 +331,7 @@ resource "aws_launch_template" "this" {
     aws_region                    = var.aws_region
     database_secret_arn           = var.database_secret_arn
     google_oidc_client_secret_arn = coalesce(var.google_oidc_client_secret_arn, "")
+    gitlab_broker_jwk_secret_arn  = coalesce(var.gitlab_broker_jwk_secret_arn, "")
     runtime_release_id            = var.runtime_release_id
   }))
 
@@ -300,7 +351,7 @@ resource "aws_autoscaling_group" "this" {
   max_size                  = 4
   desired_capacity          = 2
   vpc_zone_identifier       = var.private_subnet_ids
-  target_group_arns         = [aws_lb_target_group.this.arn]
+  target_group_arns         = concat([aws_lb_target_group.this.arn], var.gitlab_broker_enabled ? [aws_lb_target_group.gitlab_broker[0].arn] : [])
   health_check_type         = "ELB"
   health_check_grace_period = 300
 

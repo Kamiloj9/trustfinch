@@ -1,6 +1,10 @@
 ${ca_fqdn} {
 	encode zstd gzip
 
+	handle /1.0/enroll/gitlab {
+		reverse_proxy gitlab-enrollment-broker:8080
+	}
+
 	reverse_proxy https://step-ca:9000 {
 		header_up Host ${ca_fqdn}
 		transport http {
