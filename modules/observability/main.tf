@@ -312,3 +312,93 @@ resource "aws_cloudwatch_metric_alarm" "sign_latency" {
 
   tags = var.tags
 }
+
+resource "aws_cloudwatch_metric_alarm" "unhealthy_targets" {
+  count = var.load_balancer_arn_suffix == null || var.target_group_arn_suffix == null ? 0 : 1
+
+  alarm_name          = "${var.name}-ca-unhealthy-target"
+  alarm_description   = "An ALB target running step-ca is unhealthy; issuance redundancy is reduced."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "UnHealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Maximum"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  dimensions = {
+    LoadBalancer = var.load_balancer_arn_suffix
+    TargetGroup  = var.target_group_arn_suffix
+  }
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "target_5xx" {
+  count = var.load_balancer_arn_suffix == null || var.target_group_arn_suffix == null ? 0 : 1
+
+  alarm_name          = "${var.name}-ca-target-5xx"
+  alarm_description   = "The ALB received a 5xx response from a step-ca target."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 1
+  metric_name         = "HTTPCode_Target_5XX_Count"
+  namespace           = "AWS/ApplicationELB"
+  period              = 60
+  statistic           = "Sum"
+  threshold           = 1
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  dimensions = {
+    LoadBalancer = var.load_balancer_arn_suffix
+    TargetGroup  = var.target_group_arn_suffix
+  }
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "database_cpu" {
+  count = var.database_instance_identifier == null ? 0 : 1
+
+  alarm_name          = "${var.name}-database-cpu"
+  alarm_description   = "Sustained RDS CPU pressure can delay certificate issuance and failover recovery."
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 3
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 80
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  dimensions = {
+    DBInstanceIdentifier = var.database_instance_identifier
+  }
+
+  tags = var.tags
+}
+
+resource "aws_cloudwatch_metric_alarm" "database_free_storage" {
+  count = var.database_instance_identifier == null ? 0 : 1
+
+  alarm_name          = "${var.name}-database-free-storage"
+  alarm_description   = "RDS free storage is below 10 GiB; protect issuance and revocation state before it is exhausted."
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "FreeStorageSpace"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 10737418240
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = var.alarm_actions
+
+  dimensions = {
+    DBInstanceIdentifier = var.database_instance_identifier
+  }
+
+  tags = var.tags
+}

@@ -155,6 +155,18 @@ rg --quiet 'SignLatencyNanoseconds' modules/observability/main.tf \
   || fail "observability must record signing latency"
 rg --quiet 'IntermediateKmsSignErrors' modules/observability/main.tf \
   || fail "observability must alert on failed intermediate KMS signing"
+rg --quiet 'UnHealthyHostCount' modules/observability/main.tf \
+  || fail "observability must alert when an HA step-ca target is unhealthy"
+rg --quiet 'HTTPCode_Target_5XX_Count' modules/observability/main.tf \
+  || fail "observability must alert on ALB target 5xx responses"
+rg --quiet 'FreeStorageSpace' modules/observability/main.tf \
+  || fail "observability must alert on low RDS storage"
+for environment in environments/prod/eu-central-1 environments/prod/eu-west-1; do
+  rg --quiet 'load_balancer_arn_suffix' "${environment}/main.tf" \
+    || fail "HA observability must receive the ALB metric dimension: ${environment}"
+  rg --quiet 'database_instance_identifier' "${environment}/main.tf" \
+    || fail "HA observability must receive the RDS metric dimension: ${environment}"
+done
 for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
   rg --quiet 'runtime_log_group_name' "${environment}/main.tf" \
     || fail "observability must receive the sanitized runtime log group: ${environment}"

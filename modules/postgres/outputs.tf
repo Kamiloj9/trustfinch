@@ -17,3 +17,8 @@ output "database_name" {
 output "username" {
   value = var.username
 }
+
+output "instance_identifier" {
+  value       = aws_db_instance.this.identifier
+  description = "CloudWatch RDS metric dimension value."
+}

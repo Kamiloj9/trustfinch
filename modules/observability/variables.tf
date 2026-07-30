@@ -24,6 +24,27 @@ variable "runtime_log_group_name" {
   nullable    = true
 }
 
+variable "load_balancer_arn_suffix" {
+  type        = string
+  description = "Optional Application Load Balancer ARN suffix monitored for target health and 5xx responses."
+  default     = null
+  nullable    = true
+}
+
+variable "target_group_arn_suffix" {
+  type        = string
+  description = "Optional step-ca target-group ARN suffix paired with the Application Load Balancer metrics."
+  default     = null
+  nullable    = true
+}
+
+variable "database_instance_identifier" {
+  type        = string
+  description = "Optional RDS instance identifier monitored for capacity pressure."
+  default     = null
+  nullable    = true
+}
+
 variable "alarm_actions" {
   type        = list(string)
   description = "Optional SNS or incident-management alarm action ARNs."
