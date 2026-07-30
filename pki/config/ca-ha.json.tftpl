@@ -1,0 +1,34 @@
+{
+  "root": "/etc/step-ca/certs/root_ca.crt",
+  "crt": "/etc/step-ca/certs/intermediate_ca.crt",
+  "key": "awskms:key-id=${intermediate_key_id}",
+  "kms": {
+    "type": "awskms",
+    "region": "${aws_region}"
+  },
+  "address": ":9000",
+  "dnsNames": ["${ca_fqdn}"],
+  "logger": {
+    "format": "json"
+  },
+  "db": {
+    "type": "postgresql"
+  },
+  "authority": {
+    "claims": {
+      "minTLSCertDuration": "5m",
+      "maxTLSCertDuration": "24h",
+      "defaultTLSCertDuration": "24h",
+      "disableRenewal": false
+    },
+    "policy": {
+      "x509": {
+        "allow": {
+          "dns": ["*.${internal_dns_suffix}"],
+          "uri": ["spiffe://${trust_domain}/*"]
+        }
+      }
+    },
+    "provisioners": []
+  }
+}

@@ -2,6 +2,13 @@
 set -euo pipefail
 
 dnf install -y docker awscli2
+install -d -m 0755 /usr/local/lib/docker/cli-plugins
+curl --fail --silent --show-error --location \
+  --output /usr/local/lib/docker/cli-plugins/docker-compose \
+  https://github.com/docker/compose/releases/download/v5.3.1/docker-compose-linux-aarch64
+echo 'aa611e811d0ea25897839c404bfb5bf93ce706dc51c500a4457890f5d0606a86  /usr/local/lib/docker/cli-plugins/docker-compose' | sha256sum -c -
+chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+docker compose version
 systemctl enable --now docker
 
 install -d -m 0750 /opt/pki/runtime /var/lib/step-ca

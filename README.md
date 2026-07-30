@@ -11,6 +11,7 @@ The foundation deliberately does not claim to be a production HA or multi-region
 - A least-privilege runtime role: `kms:Sign` is limited to the intermediate key, while the root key is never granted to the runtime role.
 - A pinned `step-ca` runtime and Caddy reverse proxy configuration.
 - A disposable Docker integration test that issues an allowed certificate and rejects an out-of-policy SAN. The test CA uses on-disk keys in a removed Docker volume; it is never an AWS/KMS simulation.
+- A production single-region profile with two private CA nodes, ALB, RDS PostgreSQL Multi-AZ, AWS-managed database credentials, and verified RDS TLS. Its Docker test uses the same PostgreSQL backend locally.
 - Acceptance checks that run with Docker on a developer machine: `make test`.
 
 ## Start here
@@ -32,7 +33,7 @@ This runs Terraform formatting and validation in a pinned Terraform container, t
 
 ## Deployment boundaries
 
-- The default Terraform environment is intentionally a PoC. It uses Badger and one EC2 instance; it is not valid for an HA deployment.
+- `environments/dev/eu-central-1` is intentionally a PoC. It uses Badger and one EC2 instance; it is not valid for an HA deployment. Use `environments/prod/eu-central-1` only after completing its deployment and recovery runbook.
 - Root-key enable/disable is an explicit input so an ordinary apply cannot silently make the root usable.
 - Terraform does not generate CA private keys and no secret input is accepted for the CA key.
 - Google, GitLab, EC2 IID, ACME, IAM-broker, HA, and multi-region provisioners are rollout stages, not values to copy into a permissive initial CA config. Add each only with its negative tests and an approved identity-to-SAN rule.

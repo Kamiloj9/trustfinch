@@ -16,8 +16,11 @@ for binary in docker rg awk; do
 done
 
 docker compose -f docker-compose.local.yml config --quiet
+docker compose -f docker-compose.ha-local.yml config --quiet
 [[ -f environments/dev/eu-central-1/.terraform.lock.hcl ]] \
   || fail "Terraform provider lock file must be versioned"
+[[ -f environments/prod/eu-central-1/.terraform.lock.hcl ]] \
+  || fail "Production Terraform provider lock file must be versioned"
 
 shell_files=()
 while IFS= read -r shell_file; do
@@ -29,7 +32,7 @@ docker run --rm -v "${ROOT_DIR}:/workspace:ro" --entrypoint /bin/bash "${STEP_CA
 
 while IFS= read -r image; do
   [[ "${image}" == *@sha256:* ]] || fail "container image is not digest-pinned: ${image}"
-done < <(rg --no-filename '^\s*image:' docker-compose.local.yml pki/config | sed -E 's/.*image:[[:space:]]*//')
+done < <(rg --no-filename '^\s*image:' docker-compose.local.yml docker-compose.ha-local.yml pki/config | sed -E 's/.*image:[[:space:]]*//')
 
 if rg -i --glob '*.tf' 'tls_private_key|private_key_pem|private_key' modules environments; then
   fail "Terraform must not manage or carry a CA private key"
@@ -49,5 +52,19 @@ rg --quiet 'chown 1000:1000 /var/lib/step-ca' modules/step-ca-ec2/templates/pki-
   || fail "step-ca writable state directory must match the container user"
 rg --quiet 'AmazonSSMManagedInstanceCore' modules/step-ca-ec2/main.tf \
   || fail "runtime administration must use SSM rather than SSH"
+rg --quiet 'AmazonSSMManagedInstanceCore' modules/step-ca-ha/main.tf \
+  || fail "HA runtime administration must use SSM rather than SSH"
+for runtime_template in modules/step-ca-ec2/templates/pki-runtime.service.tftpl modules/step-ca-ha/templates/pki-runtime-ha.service.tftpl; do
+  rg --fixed-strings --quiet 'https://github.com/docker/compose/releases/download/v5.3.1/docker-compose-linux-aarch64' "${runtime_template}" \
+    || fail "runtime must install a pinned Docker Compose plugin: ${runtime_template}"
+  rg --fixed-strings --quiet 'aa611e811d0ea25897839c404bfb5bf93ce706dc51c500a4457890f5d0606a86' "${runtime_template}" \
+    || fail "runtime must verify the Docker Compose plugin checksum: ${runtime_template}"
+done
+rg --quiet 'manage_master_user_password\s*=\s*true' modules/postgres/main.tf \
+  || fail "RDS password must be AWS-managed rather than a Terraform input"
+rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
+  || fail "HA runtime must use an Auto Scaling rolling refresh"
+rg --quiet 'min_healthy_percentage\s*=\s*50' modules/step-ca-ha/main.tf \
+  || fail "HA refresh must retain at least half of the capacity"
 
 printf '%s\n' 'static checks passed'

@@ -21,15 +21,23 @@ docker run --rm \
   -v "${WORK_DIR}:/work" \
   --entrypoint /bin/sh \
   "${TERRAFORM_IMAGE}" \
-  -ec 'cp -a /source/. /work/; cd /work/environments/dev/eu-central-1; terraform init -backend=false -input=false; terraform validate'
+  -ec 'tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work -xf -; cd /work/environments/dev/eu-central-1; terraform init -backend=false -input=false; terraform validate'
 
 docker run --rm \
   -v "${ROOT_DIR}:/source:ro" \
   -v "${WORK_DIR}:/work" \
   --entrypoint /bin/sh \
   "${TERRAFORM_IMAGE}" \
-  -ec 'cp -a /source/. /work/template-check; cd /work/template-check/tests/template-check; terraform init -backend=false -input=false; terraform apply -auto-approve -refresh=false -input=false -lock=false >/dev/null; terraform output -raw runtime_compose >/work/rendered-step-ca-compose.yml'
+  -ec 'mkdir -p /work/prod; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/prod -xf -; cd /work/prod/environments/prod/eu-central-1; terraform init -backend=false -input=false; terraform validate'
+
+docker run --rm \
+  -v "${ROOT_DIR}:/source:ro" \
+  -v "${WORK_DIR}:/work" \
+  --entrypoint /bin/sh \
+  "${TERRAFORM_IMAGE}" \
+  -ec 'mkdir -p /work/template-check; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/template-check -xf -; cd /work/template-check/tests/template-check; terraform init -backend=false -input=false; terraform apply -auto-approve -refresh=false -input=false -lock=false >/dev/null; terraform output -raw runtime_compose >/work/rendered-step-ca-compose.yml; terraform output -raw runtime_ha_compose >/work/rendered-step-ca-ha-compose.yml'
 
 docker compose -f "${WORK_DIR}/rendered-step-ca-compose.yml" config --quiet
+STEP_CA_DB_PASSWORD=local-validation-value docker compose -f "${WORK_DIR}/rendered-step-ca-ha-compose.yml" config --quiet
 
 printf '%s\n' 'Terraform checks passed'

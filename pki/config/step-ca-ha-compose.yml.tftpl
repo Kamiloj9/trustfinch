@@ -1,0 +1,33 @@
+services:
+  step-ca:
+    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    entrypoint: ["/usr/local/bin/step-ca"]
+    command: ["/home/step/config/ca.json"]
+    restart: unless-stopped
+    environment:
+      AWS_REGION: ${aws_region}
+      AWS_DEFAULT_REGION: ${aws_region}
+      PGHOST: ${database_endpoint}
+      PGPORT: "${database_port}"
+      PGDATABASE: ${database_name}
+      PGUSER: ${database_username}
+      PGPASSWORD: "$${STEP_CA_DB_PASSWORD}"
+      PGSSLMODE: verify-full
+      PGSSLROOTCERT: /etc/ssl/certs/rds-ca-bundle.pem
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:mode=1777,noexec,nosuid,size=64m
+    volumes:
+      - /opt/pki/runtime/step-ca/ca.json:/home/step/config/ca.json:ro
+      - /opt/pki/runtime/certs:/etc/step-ca/certs:ro
+      - /opt/pki/runtime/rds-ca-bundle.pem:/etc/ssl/certs/rds-ca-bundle.pem:ro
+    expose:
+      - "9000"
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${aws_region}
+        awslogs-group: ${cloudwatch_log_group}
+        awslogs-stream: step-ca

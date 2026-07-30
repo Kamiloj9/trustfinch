@@ -1,0 +1,60 @@
+name: pki-ha-local-test
+
+services:
+  postgres:
+    image: postgres@sha256:6567bca8d7bc8c82c5922425a0baee57be8402df92bae5eacad5f01ae9544daa
+    environment:
+      POSTGRES_DB: stepca
+      POSTGRES_USER: stepca
+      POSTGRES_PASSWORD: local-test-password-not-for-production
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stepca -d stepca"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  step-ca:
+    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    entrypoint: ["/bin/bash", "/workspace/docker/step-ca/local-ha-entrypoint.sh"]
+    environment:
+      LOCAL_CA_PASSWORD: local-test-password-not-for-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - step-ca-state:/home/step
+      - ./docker/step-ca/local-ha-entrypoint.sh:/workspace/docker/step-ca/local-ha-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "step ca health 2>/dev/null | grep '^ok' >/dev/null"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
+
+  step-cli:
+    image: smallstep/step-cli@sha256:c75414251d4d8234945fb01e1374707dcc6a7adced88679bae4f0fd526331e74
+    entrypoint: ["/bin/bash"]
+    depends_on:
+      step-ca:
+        condition: service_healthy
+
+  step-ca-secondary:
+    image: smallstep/step-ca@sha256:a2b17872915c193259b75a5474c398326f41bd199f0842093e52cf4182bc8270
+    entrypoint: ["/bin/bash", "/workspace/docker/step-ca/local-ha-entrypoint.sh"]
+    environment:
+      LOCAL_CA_PASSWORD: local-test-password-not-for-production
+    depends_on:
+      step-ca:
+        condition: service_healthy
+    volumes:
+      - step-ca-state:/home/step
+      - ./docker/step-ca/local-ha-entrypoint.sh:/workspace/docker/step-ca/local-ha-entrypoint.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "step ca health --ca-url https://localhost:9000 --root /home/step/certs/root_ca.crt 2>/dev/null | grep '^ok' >/dev/null"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+      start_period: 2s
+
+volumes:
+  step-ca-state:

@@ -1,0 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+
+# Reviewed runtime artifact release: ${runtime_release_id}
+dnf install -y docker awscli2 python3
+install -d -m 0755 /usr/local/lib/docker/cli-plugins
+curl --fail --silent --show-error --location \
+  --output /usr/local/lib/docker/cli-plugins/docker-compose \
+  https://github.com/docker/compose/releases/download/v5.3.1/docker-compose-linux-aarch64
+echo 'aa611e811d0ea25897839c404bfb5bf93ce706dc51c500a4457890f5d0606a86  /usr/local/lib/docker/cli-plugins/docker-compose' | sha256sum -c -
+chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+docker compose version
+systemctl enable --now docker
+install -d -m 0750 /opt/pki/runtime
+
+cat >/etc/systemd/system/pki-runtime.service <<'UNIT'
+[Unit]
+Description=HA self-hosted PKI runtime
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=0
+ExecStartPre=/usr/bin/mkdir -p /opt/pki/runtime
+ExecStartPre=/usr/bin/aws s3 sync s3://${artifact_bucket}/runtime /opt/pki/runtime --exact-timestamps
+ExecStartPre=/usr/bin/curl --fail --silent --show-error --location --output /opt/pki/runtime/rds-ca-bundle.pem https://truststore.pki.rds.amazonaws.com/${aws_region}/${aws_region}-bundle.pem
+ExecStartPre=/usr/bin/bash -c '/usr/bin/aws secretsmanager get-secret-value --secret-id ${database_secret_arn} --query SecretString --output text | /usr/bin/python3 -c "import json,sys; print(\"STEP_CA_DB_PASSWORD=\" + json.dumps(json.load(sys.stdin)[\"password\"]))" > /opt/pki/runtime/.env && chmod 0600 /opt/pki/runtime/.env'
+ExecStart=/usr/bin/docker compose --env-file /opt/pki/runtime/.env -f /opt/pki/runtime/step-ca-ha-compose.yml up --remove-orphans
+ExecStop=/usr/bin/docker compose --env-file /opt/pki/runtime/.env -f /opt/pki/runtime/step-ca-ha-compose.yml down
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now pki-runtime.service

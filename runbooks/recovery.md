@@ -16,3 +16,9 @@ The Lean profile can restore the CA runtime and issuance state after a host fail
 ## Quarterly evidence
 
 Run the procedure in a non-production account. Include an attempted out-of-policy SAN, a root-key access denial from the runtime role, and an alarm test for a controlled root signing ceremony.
+
+## Production HA recovery
+
+The production single-region profile uses RDS PostgreSQL Multi-AZ rather than a host-mounted Badger database. For a failed CA node, the Auto Scaling group replaces it and the ALB removes unhealthy targets; confirm a new target becomes healthy and can issue a restricted test certificate.
+
+For database corruption or regional-service failure, use the approved RDS point-in-time restore procedure into an isolated recovery environment. Update the runtime database endpoint and its Secrets Manager ARN only through reviewed Terraform. Validate the restored CA's issuance, one-time-token behavior, and revocation data before routing production traffic. Never restore a database by copying its password or CA key into Terraform state.

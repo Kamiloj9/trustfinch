@@ -19,6 +19,23 @@ locals {
   caddyfile = templatefile("${path.module}/../../pki/config/Caddyfile.tftpl", {
     ca_fqdn = "ca.test.example.internal"
   })
+
+  ca_ha_config = jsondecode(templatefile("${path.module}/../../pki/config/ca-ha.json.tftpl", {
+    aws_region          = "eu-central-1"
+    ca_fqdn             = "ca.test.example.internal"
+    intermediate_key_id = "00000000-0000-0000-0000-000000000000"
+    internal_dns_suffix = "test.example.internal"
+    trust_domain        = "test.example.internal"
+  }))
+
+  runtime_ha_compose = templatefile("${path.module}/../../pki/config/step-ca-ha-compose.yml.tftpl", {
+    aws_region           = "eu-central-1"
+    cloudwatch_log_group = "/pki/test/runtime"
+    database_endpoint    = "stepca.test.rds.amazonaws.com"
+    database_port        = 5432
+    database_name        = "stepca"
+    database_username    = "stepca"
+  })
 }
 
 output "validated_template_fields" {
@@ -28,9 +45,15 @@ output "validated_template_fields" {
     compose_has_step_ca     = strcontains(local.runtime_compose, "step-ca")
     caddy_has_reverseproxy  = strcontains(local.caddyfile, "reverse_proxy")
     caddy_sets_upstream_sni = strcontains(local.caddyfile, "tls_server_name")
+    ha_uses_postgresql      = local.ca_ha_config.db.type == "postgresql"
+    ha_uses_secret_variable = strcontains(local.runtime_ha_compose, "$${STEP_CA_DB_PASSWORD}")
   }
 }
 
 output "runtime_compose" {
   value = local.runtime_compose
+}
+
+output "runtime_ha_compose" {
+  value = local.runtime_ha_compose
 }

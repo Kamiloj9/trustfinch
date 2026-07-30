@@ -1,0 +1,13 @@
+ca_fqdn             = "ca.example.internal"
+internal_dns_suffix = "example.internal"
+trust_domain        = "example.internal"
+runtime_release_id  = "2026-07-30.1"
+availability_zones  = ["eu-central-1a", "eu-central-1b"]
+allowed_https_cidrs = ["203.0.113.0/24"]
+acm_certificate_arn = "arn:aws:acm:eu-central-1:111122223333:certificate/replace-me"
+
+key_administrator_arns = ["arn:aws:iam::111122223333:role/pki-key-administrator"]
+root_ceremony_role_arns = ["arn:aws:iam::111122223333:role/pki-root-ceremony"]
+certificate_publisher_role_arns = ["arn:aws:iam::111122223333:role/pki-root-ceremony"]
+
+root_key_enabled = false
