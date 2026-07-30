@@ -138,6 +138,23 @@ variable "availability_zones" { type = list(string) }
 variable "allowed_https_cidrs" { type = list(string) }
 variable "acm_certificate_arn" { type = string }
 
+variable "enable_waf_rate_limit" {
+  type        = bool
+  description = "Attach the per-source-IP WAF rate limit to the public CA ALB."
+  default     = true
+}
+
+variable "waf_rate_limit" {
+  type        = number
+  description = "Maximum requests per source IP over five minutes before WAF blocks that IP."
+  default     = 500
+
+  validation {
+    condition     = var.waf_rate_limit >= 10
+    error_message = "waf_rate_limit must be at least 10 requests per five-minute window."
+  }
+}
+
 variable "hosted_zone_id" {
   type     = string
   default  = null

@@ -47,6 +47,8 @@ module "step_ca_ha" {
   runtime_release_id              = var.runtime_release_id
   allowed_https_cidrs             = var.allowed_https_cidrs
   acm_certificate_arn             = var.acm_certificate_arn
+  enable_waf_rate_limit           = var.enable_waf_rate_limit
+  waf_rate_limit                  = var.waf_rate_limit
   certificate_publisher_role_arns = var.certificate_publisher_role_arns
   tags                            = local.tags
 }

@@ -63,6 +63,23 @@ variable "acm_certificate_arn" {
   type = string
 }
 
+variable "enable_waf_rate_limit" {
+  type        = bool
+  description = "Attach a regional WAF web ACL that blocks sustained request floods per source IP."
+  default     = true
+}
+
+variable "waf_rate_limit" {
+  type        = number
+  description = "Maximum requests from one source IP during the WAF five-minute evaluation window."
+  default     = 500
+
+  validation {
+    condition     = var.waf_rate_limit >= 10
+    error_message = "waf_rate_limit must be at least 10 requests per five-minute window."
+  }
+}
+
 variable "ami_id" {
   type     = string
   default  = null

@@ -231,6 +231,58 @@ resource "aws_lb" "this" {
   tags = merge(var.tags, { Name = "${var.name}-step-ca" })
 }
 
+# step-ca accepts enrollment requests that can lead to KMS signing operations.
+# This low-WCU rule protects the public ALB from sustained per-IP floods without
+# retaining sampled requests, which can contain authorization material.
+resource "aws_wafv2_web_acl" "rate_limit" {
+  count = var.enable_waf_rate_limit ? 1 : 0
+
+  name  = "${var.name}-step-ca-rate-limit"
+  scope = "REGIONAL"
+
+  default_action {
+    allow {}
+  }
+
+  rule {
+    name     = "per-source-ip-rate-limit"
+    priority = 0
+
+    action {
+      block {}
+    }
+
+    statement {
+      rate_based_statement {
+        aggregate_key_type    = "IP"
+        evaluation_window_sec = 300
+        limit                 = var.waf_rate_limit
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "per-source-ip-rate-limit"
+      sampled_requests_enabled   = false
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "${var.name}-step-ca-waf"
+    sampled_requests_enabled   = false
+  }
+
+  tags = merge(var.tags, { Name = "${var.name}-step-ca-rate-limit" })
+}
+
+resource "aws_wafv2_web_acl_association" "rate_limit" {
+  count = var.enable_waf_rate_limit ? 1 : 0
+
+  resource_arn = aws_lb.this.arn
+  web_acl_arn  = aws_wafv2_web_acl.rate_limit[0].arn
+}
+
 resource "aws_lb_target_group" "this" {
   name_prefix = "${substr(var.name, 0, 20)}-ca-"
   port        = 9000

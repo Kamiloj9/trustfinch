@@ -10,6 +10,8 @@ This runbook applies to `environments/prod/eu-central-1`; it is not a shortcut f
 6. Verify each ALB target becomes healthy, confirm the ALB/RDS CloudWatch alarms are present, and inspect `step-ca` logs for PostgreSQL `verify-full` connectivity. The base profile has no provisioner; install an approved, restricted provisioner before attempting issuance.
 7. After that provisioner is deployed, simulate one node loss. Verify the ALB removes it, the ASG replaces it, and restricted issuance continues. Record the RDS backup/restore exercise separately before declaring the environment production ready.
 
+The public ALB has a WAF rule that blocks a source IP after 500 requests over five minutes. WAF rate limiting is approximate, not a precise quota: tune `waf_rate_limit` only after measuring client-NAT fan-out and legitimate enrollment bursts. Its request sampling is disabled so enrollment material is not retained by WAF.
+
 The runtime retrieves only the RDS-managed password secret and a public RDS CA bundle. It has no path to the root key, certificate-provisioner password, or Terraform state.
 
 For every reviewed runtime configuration or public-certificate update, increment `runtime_release_id` in the same reviewed change. This creates a new launch template version and performs a 50%-healthy rolling refresh; do not upload a certificate release without that corresponding Terraform apply.

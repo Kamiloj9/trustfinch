@@ -143,6 +143,8 @@ for runtime_template in pki/config/step-ca-compose.yml.tftpl pki/config/step-ca-
 done
 rg --quiet 'ott=' pki/runtime/redact-step-ca-logs.sh \
   || fail "step-ca log redactor must remove one-time tokens"
+rg --quiet 'mkfifo' pki/runtime/step-ca-entrypoint.sh \
+  || fail "step-ca log boundary must drain a FIFO before shutdown"
 for local_entrypoint in docker/step-ca/local-entrypoint.sh docker/step-ca/local-ha-entrypoint.sh; do
   rg --quiet '"logger": \{"format": "json"\}' "${local_entrypoint}" \
     || fail "local CA must use production-compatible JSON request logs: ${local_entrypoint}"
@@ -161,11 +163,19 @@ rg --quiet 'HTTPCode_Target_5XX_Count' modules/observability/main.tf \
   || fail "observability must alert on ALB target 5xx responses"
 rg --quiet 'FreeStorageSpace' modules/observability/main.tf \
   || fail "observability must alert on low RDS storage"
+rg --quiet 'aws_wafv2_web_acl' modules/step-ca-ha/main.tf \
+  || fail "HA deployment must protect the public ALB with WAF"
+rg --quiet 'aggregate_key_type[[:space:]]*=[[:space:]]*"IP"' modules/step-ca-ha/main.tf \
+  || fail "WAF rate limit must be applied per source IP"
+rg --quiet 'sampled_requests_enabled[[:space:]]*=[[:space:]]*false' modules/step-ca-ha/main.tf \
+  || fail "WAF must not sample enrollment requests"
 for environment in environments/prod/eu-central-1 environments/prod/eu-west-1; do
   rg --quiet 'load_balancer_arn_suffix' "${environment}/main.tf" \
     || fail "HA observability must receive the ALB metric dimension: ${environment}"
   rg --quiet 'database_instance_identifier' "${environment}/main.tf" \
     || fail "HA observability must receive the RDS metric dimension: ${environment}"
+  rg --quiet 'enable_waf_rate_limit' "${environment}/main.tf" \
+    || fail "HA deployment must pass the reviewed WAF configuration: ${environment}"
 done
 for environment in environments/dev/eu-central-1 environments/prod/eu-central-1 environments/prod/eu-west-1; do
   rg --quiet 'runtime_log_group_name' "${environment}/main.tf" \

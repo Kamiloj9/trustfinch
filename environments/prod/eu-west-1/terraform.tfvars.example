@@ -5,6 +5,10 @@ runtime_release_id  = "2026-07-30.1"
 availability_zones  = ["eu-west-1a", "eu-west-1b"]
 allowed_https_cidrs = ["203.0.113.0/24"]
 acm_certificate_arn = "arn:aws:acm:eu-west-1:111122223333:certificate/replace-me"
+# WAF blocks a source IP after 500 requests in five minutes. Tune this only
+# after measuring expected client-NAT and enrollment bursts.
+enable_waf_rate_limit = true
+waf_rate_limit        = 500
 
 key_administrator_arns          = ["arn:aws:iam::111122223333:role/pki-key-administrator"]
 intermediate_ceremony_role_arns = ["arn:aws:iam::111122223333:role/pki-intermediate-ceremony"]
