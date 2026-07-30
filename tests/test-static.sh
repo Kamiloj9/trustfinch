@@ -21,6 +21,10 @@ docker compose -f docker-compose.ha-local.yml config --quiet
   || fail "Terraform provider lock file must be versioned"
 [[ -f environments/prod/eu-central-1/.terraform.lock.hcl ]] \
   || fail "Production Terraform provider lock file must be versioned"
+[[ -f environments/prod/eu-west-1/.terraform.lock.hcl ]] \
+  || fail "EU West Terraform provider lock file must be versioned"
+[[ -f environments/global/route53-failover/.terraform.lock.hcl ]] \
+  || fail "Route 53 failover Terraform provider lock file must be versioned"
 
 shell_files=()
 while IFS= read -r shell_file; do
@@ -66,6 +70,10 @@ rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
   || fail "HA runtime must use an Auto Scaling rolling refresh"
 rg --quiet 'min_healthy_percentage\s*=\s*50' modules/step-ca-ha/main.tf \
   || fail "HA refresh must retain at least half of the capacity"
+rg --quiet 'create_root_key\s*=\s*false' environments/prod/eu-west-1/main.tf \
+  || fail "EU West must not create a competing root key"
+rg --quiet 'failover_routing_policy' modules/route53-failover/main.tf \
+  || fail "Global endpoint must use Route 53 failover routing"
 rg --quiet 'google_oidc_client_secret_arn' modules/step-ca-ec2/main.tf \
   || fail "Lean runtime must scope Google OIDC secret access"
 rg --quiet 'google_oidc_client_secret_arn' modules/step-ca-ha/main.tf \

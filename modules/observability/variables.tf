@@ -5,7 +5,9 @@ variable "name" {
 
 variable "root_key_arn" {
   type        = string
-  description = "Root KMS key ARN monitored for every Sign event."
+  description = "Optional local root KMS key ARN monitored for every Sign event. Independent intermediate-only regions set this to null."
+  default     = null
+  nullable    = true
 }
 
 variable "alarm_actions" {

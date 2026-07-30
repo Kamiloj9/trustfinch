@@ -1,0 +1,6 @@
+hosted_zone_id                   = "Z0123456789EXAMPLE"
+ca_fqdn                          = "ca.example.internal"
+primary_load_balancer_dns_name   = "internal-primary-123.eu-central-1.elb.amazonaws.com"
+primary_load_balancer_zone_id    = "Z215JYRZR1TBD5"
+secondary_load_balancer_dns_name = "internal-secondary-123.eu-west-1.elb.amazonaws.com"
+secondary_load_balancer_zone_id  = "Z32O12XQLNTSW2"

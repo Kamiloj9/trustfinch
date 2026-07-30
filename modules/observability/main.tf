@@ -136,6 +136,8 @@ resource "aws_cloudtrail" "this" {
 }
 
 resource "aws_cloudwatch_log_metric_filter" "root_sign" {
+  count = var.root_key_arn == null ? 0 : 1
+
   name           = "${var.name}-root-kms-sign"
   log_group_name = aws_cloudwatch_log_group.trail.name
   pattern        = "{ ($.eventSource = \"kms.amazonaws.com\") && ($.eventName = \"Sign\") && ($.resources[0].ARN = \"${var.root_key_arn}\") }"
@@ -148,12 +150,14 @@ resource "aws_cloudwatch_log_metric_filter" "root_sign" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "root_sign" {
+  count = var.root_key_arn == null ? 0 : 1
+
   alarm_name          = "${var.name}-root-kms-sign"
   alarm_description   = "Every root CA signing operation requires incident review."
   comparison_operator = "GreaterThanOrEqualToThreshold"
   evaluation_periods  = 1
-  metric_name         = aws_cloudwatch_log_metric_filter.root_sign.metric_transformation[0].name
-  namespace           = aws_cloudwatch_log_metric_filter.root_sign.metric_transformation[0].namespace
+  metric_name         = aws_cloudwatch_log_metric_filter.root_sign[0].metric_transformation[0].name
+  namespace           = aws_cloudwatch_log_metric_filter.root_sign[0].metric_transformation[0].namespace
   period              = 60
   statistic           = "Sum"
   threshold           = 1

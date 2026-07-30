@@ -1,6 +1,8 @@
 data "aws_caller_identity" "current" {}
 
 data "aws_iam_policy_document" "root" {
+  count = var.create_root_key ? 1 : 0
+
   statement {
     sid    = "EnableAccountIAMControl"
     effect = "Allow"
@@ -146,12 +148,14 @@ data "aws_iam_policy_document" "intermediate" {
 }
 
 resource "aws_kms_key" "root" {
+  count = var.create_root_key ? 1 : 0
+
   description              = "${var.name} offline-logical root CA signing key"
   customer_master_key_spec = "ECC_NIST_P256"
   key_usage                = "SIGN_VERIFY"
   is_enabled               = var.root_key_enabled
   deletion_window_in_days  = var.deletion_window_in_days
-  policy                   = data.aws_iam_policy_document.root.json
+  policy                   = data.aws_iam_policy_document.root[0].json
 
   tags = merge(var.tags, {
     Name      = "${var.name}-root-ca"
@@ -161,8 +165,10 @@ resource "aws_kms_key" "root" {
 }
 
 resource "aws_kms_alias" "root" {
+  count = var.create_root_key ? 1 : 0
+
   name          = "alias/${var.name}-root-ca"
-  target_key_id = aws_kms_key.root.key_id
+  target_key_id = aws_kms_key.root[0].key_id
 }
 
 resource "aws_kms_key" "intermediate" {

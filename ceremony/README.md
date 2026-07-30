@@ -27,3 +27,19 @@ ARTIFACT_BUCKET=... \
 Review the certificate subjects, key usages, validity periods, and chain before publishing. Then apply the same Terraform environment with `root_key_enabled = false`; confirm the CloudTrail alarm path for root-key activity.
 
 The output directory is gitignored to prevent accidental publication. Only reviewed public certificates may later be copied into a versioned release artifact.
+
+## Independent regional intermediate
+
+For a second region, keep the existing reviewed root certificate and sign only the new regional intermediate:
+
+```sh
+ROOT_AWS_REGION=eu-central-1 \
+INTERMEDIATE_AWS_REGION=eu-west-1 \
+AWS_SHARED_CONFIG_DIR=/absolute/path/to/aws-config \
+ROOT_KEY_ID=<shared-root-key-id> INTERMEDIATE_KEY_ID=<eu-west-key-id> \
+ROOT_CERT_PATH=/absolute/path/to/root_ca.crt \
+OUTPUT_DIR=/absolute/path/to/eu-west-ceremony-output \
+./ceremony/create-hierarchy.sh
+```
+
+Publish the existing root certificate and the new EU West intermediate to the EU West artifact bucket. The regional runtime never receives the root key.

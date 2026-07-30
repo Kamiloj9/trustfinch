@@ -36,6 +36,20 @@ docker run --rm \
   -v "${WORK_DIR}:/work" \
   --entrypoint /bin/sh \
   "${TERRAFORM_IMAGE}" \
+  -ec 'mkdir -p /work/euw1; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/euw1 -xf -; cd /work/euw1/environments/prod/eu-west-1; terraform init -backend=false -input=false; terraform validate'
+
+docker run --rm \
+  -v "${ROOT_DIR}:/source:ro" \
+  -v "${WORK_DIR}:/work" \
+  --entrypoint /bin/sh \
+  "${TERRAFORM_IMAGE}" \
+  -ec 'mkdir -p /work/global; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/global -xf -; cd /work/global/environments/global/route53-failover; terraform init -backend=false -input=false; terraform validate'
+
+docker run --rm \
+  -v "${ROOT_DIR}:/source:ro" \
+  -v "${WORK_DIR}:/work" \
+  --entrypoint /bin/sh \
+  "${TERRAFORM_IMAGE}" \
   -ec 'mkdir -p /work/template-check; tar --exclude=.terraform --exclude=.git -C /source -cf - . | tar -C /work/template-check -xf -; cd /work/template-check/tests/template-check; terraform init -backend=false -input=false; terraform apply -auto-approve -refresh=false -input=false -lock=false >/dev/null; terraform output -raw runtime_compose >/work/rendered-step-ca-compose.yml; terraform output -raw runtime_ha_compose >/work/rendered-step-ca-ha-compose.yml; terraform output -raw lean_runtime_bootstrap >/work/rendered-lean-runtime-bootstrap.sh; terraform output -raw ha_runtime_bootstrap >/work/rendered-ha-runtime-bootstrap.sh'
 
 docker compose -f "${WORK_DIR}/rendered-step-ca-compose.yml" config --quiet

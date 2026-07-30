@@ -1,0 +1,5 @@
+bucket       = "replace-with-versioned-terraform-state-bucket"
+key          = "self-hosted-pki/global/route53-failover/terraform.tfstate"
+region       = "eu-central-1"
+encrypt      = true
+use_lockfile = true

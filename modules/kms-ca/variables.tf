@@ -8,6 +8,12 @@ variable "runtime_role_arn" {
   description = "EC2 runtime role. It receives access only to the intermediate key."
 }
 
+variable "create_root_key" {
+  type        = bool
+  description = "Create the shared root key. Set false for an independent regional intermediate that chains to an existing root."
+  default     = true
+}
+
 variable "key_administrator_arns" {
   type        = list(string)
   description = "Key administrators; keep distinct from ceremony and runtime roles."
@@ -23,8 +29,8 @@ variable "root_ceremony_role_arns" {
   description = "Roles permitted to sign with the root during an approved ceremony."
 
   validation {
-    condition     = length(var.root_ceremony_role_arns) > 0
-    error_message = "At least one root ceremony role ARN is required."
+    condition     = !var.create_root_key || length(var.root_ceremony_role_arns) > 0
+    error_message = "At least one root ceremony role ARN is required when this module creates a root key."
   }
 }
 

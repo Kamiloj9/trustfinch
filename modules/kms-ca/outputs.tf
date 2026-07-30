@@ -1,10 +1,10 @@
 output "root_key_id" {
-  value       = aws_kms_key.root.key_id
+  value       = try(aws_kms_key.root[0].key_id, null)
   description = "Root KMS key ID for the approved ceremony only."
 }
 
 output "root_key_arn" {
-  value       = aws_kms_key.root.arn
+  value       = try(aws_kms_key.root[0].arn, null)
   description = "Root KMS key ARN for CloudTrail monitoring."
 }
 

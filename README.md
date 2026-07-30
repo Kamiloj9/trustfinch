@@ -12,6 +12,7 @@ The Lean profile does not claim production HA or multi-region recovery. The prod
 - A pinned `step-ca` runtime and Caddy reverse proxy configuration.
 - A disposable Docker integration test that issues an allowed certificate and rejects an out-of-policy SAN. The test CA uses on-disk keys in a removed Docker volume; it is never an AWS/KMS simulation.
 - A production single-region profile with two private CA nodes, ALB, RDS PostgreSQL Multi-AZ, AWS-managed database credentials, and verified RDS TLS. Its Docker test uses the same PostgreSQL backend locally.
+- An independent EU West HA profile with its own intermediate, state, and database, plus a global Route 53 primary/secondary alias environment. The regional profiles never create a second root.
 - Acceptance checks that run with Docker on a developer machine: `make test`.
 
 ## Start here
