@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kamilojdana/trustfinch/broker/internal/issuer"
+	"github.com/Kamiloj9/trustfinch/broker/internal/issuer"
 	"github.com/go-jose/go-jose/v4"
 )
 

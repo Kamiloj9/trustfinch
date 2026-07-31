@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/kamilojdana/trustfinch/broker/internal/issuer"
+	"github.com/Kamiloj9/trustfinch/broker/internal/issuer"
 )
 
 const enrollmentPath = "/1.0/enroll/iam"

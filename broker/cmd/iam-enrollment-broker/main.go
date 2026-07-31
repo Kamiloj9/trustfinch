@@ -17,8 +17,8 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
-	"github.com/kamilojdana/trustfinch/broker/internal/iam"
-	"github.com/kamilojdana/trustfinch/broker/internal/issuer"
+	"github.com/Kamiloj9/trustfinch/broker/internal/iam"
+	"github.com/Kamiloj9/trustfinch/broker/internal/issuer"
 )
 
 func main() {

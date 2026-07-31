@@ -1,4 +1,4 @@
-module github.com/kamilojdana/trustfinch/broker
+module github.com/Kamiloj9/trustfinch/broker
 
 go 1.24.0
 
