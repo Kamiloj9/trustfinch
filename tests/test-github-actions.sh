@@ -42,6 +42,10 @@ rg --fixed-strings --quiet 'make test' "${ROOT_DIR}/.github/workflows/ci.yml" \
   || fail "CI must run the complete local Docker test suite"
 rg --fixed-strings --quiet 'apt-get install --yes ripgrep' "${ROOT_DIR}/.github/workflows/ci.yml" \
   || fail "CI must install the ripgrep prerequisite"
+rg --fixed-strings --quiet 'docker-compose-linux-x86_64' "${ROOT_DIR}/.github/workflows/ci.yml" \
+  || fail "CI must install the Docker Compose plugin"
+rg --fixed-strings --quiet 'f9ebc6ebdb19d769b793c245a736caaeb198c62587f13b25c660c13b4987f959' "${ROOT_DIR}/.github/workflows/ci.yml" \
+  || fail "CI must verify the Docker Compose plugin checksum"
 rg --fixed-strings --quiet 'make public-audit' "${ROOT_DIR}/.github/workflows/ci.yml" \
   || fail "CI must scan source and reachable history"
 rg --fixed-strings --quiet 'fetch-depth: 0' "${ROOT_DIR}/.github/workflows/ci.yml" \
@@ -58,6 +62,10 @@ rg --fixed-strings --quiet 'gh release create' "${ROOT_DIR}/.github/workflows/re
   || fail "release workflow must create a GitHub Release"
 rg --fixed-strings --quiet 'apt-get install --yes ripgrep' "${ROOT_DIR}/.github/workflows/release.yml" \
   || fail "release workflow must install the ripgrep prerequisite"
+rg --fixed-strings --quiet 'docker-compose-linux-x86_64' "${ROOT_DIR}/.github/workflows/release.yml" \
+  || fail "release workflow must install the Docker Compose plugin"
+rg --fixed-strings --quiet 'f9ebc6ebdb19d769b793c245a736caaeb198c62587f13b25c660c13b4987f959' "${ROOT_DIR}/.github/workflows/release.yml" \
+  || fail "release workflow must verify the Docker Compose plugin checksum"
 rg --fixed-strings --quiet 'git archive --format=tar.gz' "${ROOT_DIR}/.github/workflows/release.yml" \
   || fail "release workflow must create a tagged source archive"
 rg --fixed-strings --quiet 'spdx-json' "${ROOT_DIR}/.github/workflows/release.yml" \
