@@ -5,6 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COSIGN_IMAGE="ghcr.io/sigstore/cosign/cosign@sha256:c77247c92f4dfea851c70555738226498393e34e2f9ca83cb959e51c230e4ad7"
 REGISTRY_IMAGE="registry@sha256:a3d8aaa63ed8681a604f1dea0aa03f100d5895b6a58ace528858a7b332415373"
 WORK_DIR="$(mktemp -d -t pki-container-image-supply-chain.XXXXXX)"
+# Cosign runs as an unprivileged container user; this directory contains only
+# disposable test fixtures and is removed by the EXIT trap below.
+chmod 0777 "${WORK_DIR}"
 REGISTRY_NAME="pki-supply-chain-${RANDOM}-${RANDOM}"
 REGISTRY_ID=""
 
