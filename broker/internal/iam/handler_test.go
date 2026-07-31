@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/trustfinch/trustfinch/broker/internal/issuer"
+	"github.com/kamilojdana/trustfinch/broker/internal/issuer"
 	"github.com/go-jose/go-jose/v4"
 )
 

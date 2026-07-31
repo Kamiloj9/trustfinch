@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/trustfinch/trustfinch/broker/internal/enrollment"
+	"github.com/kamilojdana/trustfinch/broker/internal/enrollment"
 )
 
 func main() {
