@@ -19,12 +19,21 @@ trap cleanup EXIT
 command -v docker >/dev/null || { printf '%s\n' 'docker is required' >&2; exit 1; }
 
 REGISTRY_ID="$(docker run -d --rm --name "${REGISTRY_NAME}" -P "${REGISTRY_IMAGE}")"
-registry_port="$(docker port "${REGISTRY_ID}" 5000/tcp | sed -E 's/.*:([0-9]+)$/\1/')"
+registry_port="$(docker port "${REGISTRY_ID}" 5000/tcp | awk -F: 'NR == 1 { print $NF }')"
+[[ "${registry_port}" =~ ^[0-9]+$ ]] || {
+  printf 'could not determine a host port for the disposable registry\n' >&2
+  docker logs "${REGISTRY_ID}" >&2 || true
+  exit 1
+}
 for _ in $(seq 1 30); do
   curl --fail --silent "http://127.0.0.1:${registry_port}/v2/" >/dev/null && break
   sleep 1
 done
-curl --fail --silent "http://127.0.0.1:${registry_port}/v2/" >/dev/null
+if ! curl --fail --silent "http://127.0.0.1:${registry_port}/v2/" >/dev/null; then
+  printf 'disposable registry did not become ready on port %s\n' "${registry_port}" >&2
+  docker logs "${REGISTRY_ID}" >&2 || true
+  exit 1
+fi
 
 build_image() {
   local tag="$1"

@@ -73,6 +73,8 @@ rg --fixed-strings --quiet 'COMPOSE_ARCH="x86_64"' tests/test-runtime-bootstrap.
   || fail "runtime bootstrap test must support x86_64 CI runners"
 rg --fixed-strings --quiet 'docker-compose-linux-${COMPOSE_ARCH}' tests/test-runtime-bootstrap.sh \
   || fail "runtime bootstrap test must select a Docker Compose binary by architecture"
+rg --fixed-strings --quiet "awk -F: 'NR == 1 { print \$NF }'" tests/test-container-image-supply-chain.sh \
+  || fail "supply-chain test must select one Docker registry port mapping"
 rg --quiet 'manage_master_user_password\s*=\s*true' modules/postgres/main.tf \
   || fail "RDS password must be AWS-managed rather than a Terraform input"
 rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
