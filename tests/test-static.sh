@@ -69,6 +69,10 @@ for runtime_template in modules/step-ca-ec2/templates/pki-runtime.service.tftpl 
   rg --fixed-strings --quiet 'aa611e811d0ea25897839c404bfb5bf93ce706dc51c500a4457890f5d0606a86' "${runtime_template}" \
     || fail "runtime must verify the Docker Compose plugin checksum: ${runtime_template}"
 done
+rg --fixed-strings --quiet 'COMPOSE_ARCH="x86_64"' tests/test-runtime-bootstrap.sh \
+  || fail "runtime bootstrap test must support x86_64 CI runners"
+rg --fixed-strings --quiet 'docker-compose-linux-${COMPOSE_ARCH}' tests/test-runtime-bootstrap.sh \
+  || fail "runtime bootstrap test must select a Docker Compose binary by architecture"
 rg --quiet 'manage_master_user_password\s*=\s*true' modules/postgres/main.tf \
   || fail "RDS password must be AWS-managed rather than a Terraform input"
 rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
