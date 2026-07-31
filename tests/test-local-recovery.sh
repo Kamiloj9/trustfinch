@@ -8,6 +8,9 @@ PROJECT_NAME="pki-local-test"
 STATE_VOLUME="${PROJECT_NAME}_step-ca-state"
 BACKUP_VOLUME="pki-local-recovery-backup-${RANDOM}-${RANDOM}"
 WORK_DIR="$(mktemp -d -t pki-local-recovery.XXXXXX)"
+# The Step CLI image uses an unprivileged account, so make this disposable
+# fixture directory traversable while it is mounted into the test containers.
+chmod 0777 "${WORK_DIR}"
 
 command -v docker >/dev/null || { printf '%s\n' 'docker is required' >&2; exit 1; }
 
