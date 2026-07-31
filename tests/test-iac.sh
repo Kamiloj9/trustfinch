@@ -69,7 +69,7 @@ docker run --rm \
 docker compose -f "${WORK_DIR}/rendered-step-ca-compose.yml" config --quiet
 STEP_CA_DB_PASSWORD=local-validation-value docker compose -f "${WORK_DIR}/rendered-step-ca-ha-compose.yml" config --quiet
 docker compose -f "${WORK_DIR}/rendered-gitlab-broker-compose.yml" config --quiet
-docker run --rm -v "${WORK_DIR}:/work:ro" --entrypoint /bin/bash "${STEP_CA_IMAGE}" -n \
+docker run --rm --user "${HOST_USER}" -v "${WORK_DIR}:/work:ro" --entrypoint /bin/bash "${STEP_CA_IMAGE}" -n \
   /work/rendered-lean-runtime-bootstrap.sh /work/rendered-verified-lean-runtime-bootstrap.sh /work/rendered-image-verified-lean-runtime-bootstrap.sh /work/rendered-ha-runtime-bootstrap.sh
 
 printf '%s\n' 'Terraform checks passed'
