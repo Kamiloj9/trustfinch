@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: gomod
+    directory: /broker
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /environments/dev/eu-central-1
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /environments/prod/eu-central-1
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /environments/prod/eu-west-1
+    schedule:
+      interval: weekly
+  - package-ecosystem: terraform
+    directory: /environments/global/route53-failover
+    schedule:
+      interval: weekly
