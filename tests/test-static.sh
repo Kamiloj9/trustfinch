@@ -75,6 +75,8 @@ rg --fixed-strings --quiet 'docker-compose-linux-${COMPOSE_ARCH}' tests/test-run
   || fail "runtime bootstrap test must select a Docker Compose binary by architecture"
 rg --fixed-strings --quiet "awk -F: 'NR == 1 { print \$NF }'" tests/test-container-image-supply-chain.sh \
   || fail "supply-chain test must select one Docker registry port mapping"
+rg --fixed-strings --quiet 'HOST_USER="$(id -u):$(id -g)"' tests/test-iac.sh \
+  || fail "Terraform validation must use the invoking user for temporary fixtures"
 rg --quiet 'manage_master_user_password\s*=\s*true' modules/postgres/main.tf \
   || fail "RDS password must be AWS-managed rather than a Terraform input"
 rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
