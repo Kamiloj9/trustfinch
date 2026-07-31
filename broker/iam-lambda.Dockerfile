@@ -1,4 +1,4 @@
-FROM golang@sha256:2d40d4fc278dad38be0777d5e2a88a2c6dee51b0b29c97a764fc6c6a11ca893c AS build
+FROM --platform=$BUILDPLATFORM golang@sha256:2d40d4fc278dad38be0777d5e2a88a2c6dee51b0b29c97a764fc6c6a11ca893c AS build
 
 ARG TARGETOS=linux
 ARG TARGETARCH=arm64

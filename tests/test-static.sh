@@ -77,6 +77,8 @@ rg --fixed-strings --quiet "awk -F: 'NR == 1 { print \$NF }'" tests/test-contain
   || fail "supply-chain test must select one Docker registry port mapping"
 rg --fixed-strings --quiet 'HOST_USER="$(id -u):$(id -g)"' tests/test-iac.sh \
   || fail "Terraform validation must use the invoking user for temporary fixtures"
+rg --fixed-strings --quiet 'FROM --platform=$BUILDPLATFORM golang@sha256:' broker/iam-lambda.Dockerfile \
+  || fail "IAM broker must build natively before cross-compiling its Lambda output"
 rg --quiet 'manage_master_user_password\s*=\s*true' modules/postgres/main.tf \
   || fail "RDS password must be AWS-managed rather than a Terraform input"
 rg --quiet 'instance_refresh' modules/step-ca-ha/main.tf \
