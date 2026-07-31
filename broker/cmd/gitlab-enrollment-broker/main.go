@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/example/self-hosted-pki/broker/internal/enrollment"
+	"github.com/trustfinch/trustfinch/broker/internal/enrollment"
 )
 
 func main() {

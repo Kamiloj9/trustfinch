@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/example/self-hosted-pki/broker/internal/issuer"
+	"github.com/trustfinch/trustfinch/broker/internal/issuer"
 	"github.com/go-jose/go-jose/v4"
 )
 

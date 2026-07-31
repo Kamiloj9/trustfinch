@@ -1,4 +1,4 @@
-module github.com/example/self-hosted-pki/broker
+module github.com/trustfinch/trustfinch/broker
 
 go 1.24.0
 

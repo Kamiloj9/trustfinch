@@ -1,5 +1,5 @@
 bucket       = "replace-with-versioned-terraform-state-bucket"
-key          = "self-hosted-pki/prod/eu-west-1/terraform.tfstate"
+key          = "trustfinch/prod/eu-west-1/terraform.tfstate"
 region       = "eu-west-1"
 encrypt      = true
 use_lockfile = true

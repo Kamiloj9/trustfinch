@@ -13,5 +13,9 @@ crash.log
 # Local CA state. It contains disposable private keys created only by Docker tests.
 .local/
 
+# Per-deployment settings are created by the Trustfinch setup guide and may
+# contain account and network details that do not belong in version control.
+*.tfvars
+
 # Ceremony output is public, but must be explicitly reviewed before versioning.
 ceremony/output/

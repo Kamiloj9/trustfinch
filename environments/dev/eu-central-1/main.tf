@@ -4,7 +4,7 @@ provider "aws" {
   default_tags {
     tags = {
       ManagedBy   = "Terraform"
-      Project     = "self-hosted-pki"
+      Project     = "trustfinch"
       Environment = "dev"
     }
   }
@@ -13,7 +13,7 @@ provider "aws" {
 locals {
   tags = {
     ManagedBy   = "Terraform"
-    Project     = "self-hosted-pki"
+    Project     = "trustfinch"
     Environment = "dev"
   }
 }

@@ -1,6 +1,6 @@
-# Self-hosted PKI on AWS
+# Trustfinch
 
-This repository implements a secure self-hosted PKI foundation from the project plan. It runs [step-ca](https://smallstep.com/docs/step-ca/) with an AWS KMS-backed intermediate CA key in AWS; no CA private key is stored in Terraform state, a container image, or the EC2 filesystem.
+Trustfinch is a self-hosted PKI foundation for teams that want simple, verifiable trust. It runs [step-ca](https://smallstep.com/docs/step-ca/) with an AWS KMS-backed intermediate CA key; no CA private key is stored in Terraform state, a container image, or the EC2 filesystem.
 
 The Lean profile does not claim production HA or multi-region recovery. The production HA profile still requires the decisions recorded in the threat model, an approved provisioner configuration, and disaster-recovery exercises before use.
 
@@ -25,7 +25,7 @@ The Lean profile does not claim production HA or multi-region recovery. The prod
 ## Start here
 
 1. Read [the threat model](runbooks/threat-model.md) and fill in the identity-to-SAN matrix in [pki/policies/identity-matrix.md](pki/policies/identity-matrix.md). Do not deploy with the example domain values.
-2. Copy the relevant example variables file in `environments/`, replace placeholders, and run an AWS plan using short-lived credentials.
+2. For the Lean dev profile, run `scripts/trustfinch-setup.sh` to validate your Docker and AWS setup, create a local configuration, and guide the safe ceremony stages. The script requires an existing hardened Terraform S3 backend and short-lived AWS credentials.
 3. Apply with `root_key_enabled = true` only during the controlled ceremony. Run [ceremony/create-hierarchy.sh](ceremony/create-hierarchy.sh), publish the resulting **public** certificates, then immediately apply with `root_key_enabled = false`.
 4. Follow [the recovery runbook](runbooks/recovery.md) and capture evidence of its test before treating the deployment as production-ready.
 
@@ -50,3 +50,7 @@ See [runbooks/deployment.md](runbooks/deployment.md) for the exact rollout order
 For recurring GitLab deployment access, use [the GitLab Terraform OIDC runbook](runbooks/gitlab-terraform-oidc.md); it deliberately has no static AWS-key fallback.
 For production runtime payloads, follow [the artifact-signing runbook](runbooks/runtime-artifact-signing.md) before enabling verification.
 For container images, use [the image supply-chain runbook](runbooks/container-image-supply-chain.md) before enabling runtime image verification.
+
+## Open source and security
+
+Trustfinch is licensed under [Apache-2.0](LICENSE). Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request and [SECURITY.md](SECURITY.md) to report a vulnerability privately. Before making a fork or repository public, follow [the publication runbook](runbooks/github-publication.md).

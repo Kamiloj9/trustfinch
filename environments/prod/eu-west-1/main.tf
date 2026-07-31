@@ -9,7 +9,7 @@ provider "aws" {
 locals {
   tags = {
     ManagedBy   = "Terraform"
-    Project     = "self-hosted-pki"
+    Project     = "trustfinch"
     Environment = "prod"
     Region      = "eu-west-1"
   }

@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "name" {
   type        = string
   description = "Short lowercase resource prefix."
-  default     = "pki-dev"
+  default     = "trustfinch-dev"
 }
 
 variable "ca_fqdn" {

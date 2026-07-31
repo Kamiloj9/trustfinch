@@ -11,7 +11,7 @@ import (
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/example/self-hosted-pki/broker/internal/issuer"
+	"github.com/trustfinch/trustfinch/broker/internal/issuer"
 )
 
 var ErrReplay = errors.New("GitLab token was already used")
