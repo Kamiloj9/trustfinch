@@ -40,6 +40,8 @@ rg --quiet 'contents: read' "${ROOT_DIR}/.github/workflows/ci.yml" \
   || fail "CI must retain read-only contents access"
 rg --fixed-strings --quiet 'make test' "${ROOT_DIR}/.github/workflows/ci.yml" \
   || fail "CI must run the complete local Docker test suite"
+rg --fixed-strings --quiet 'apt-get install --yes ripgrep' "${ROOT_DIR}/.github/workflows/ci.yml" \
+  || fail "CI must install the ripgrep prerequisite"
 rg --fixed-strings --quiet 'make public-audit' "${ROOT_DIR}/.github/workflows/ci.yml" \
   || fail "CI must scan source and reachable history"
 rg --fixed-strings --quiet 'fetch-depth: 0' "${ROOT_DIR}/.github/workflows/ci.yml" \
@@ -54,6 +56,8 @@ rg --fixed-strings --quiet 'contents: write' "${ROOT_DIR}/.github/workflows/rele
   || fail "release workflow must explicitly scope release creation permission"
 rg --fixed-strings --quiet 'gh release create' "${ROOT_DIR}/.github/workflows/release.yml" \
   || fail "release workflow must create a GitHub Release"
+rg --fixed-strings --quiet 'apt-get install --yes ripgrep' "${ROOT_DIR}/.github/workflows/release.yml" \
+  || fail "release workflow must install the ripgrep prerequisite"
 rg --fixed-strings --quiet 'git archive --format=tar.gz' "${ROOT_DIR}/.github/workflows/release.yml" \
   || fail "release workflow must create a tagged source archive"
 rg --fixed-strings --quiet 'spdx-json' "${ROOT_DIR}/.github/workflows/release.yml" \
