@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/aws/aws-lambda-go v1.54.0
-	github.com/aws/aws-sdk-go-v2 v1.43.2
+	github.com/aws/aws-sdk-go-v2 v1.43.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.0
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.46.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.106.2
@@ -28,5 +28,5 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.28.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.37.0 // indirect
-	github.com/aws/smithy-go v1.27.5 // indirect
+	github.com/aws/smithy-go v1.27.6 // indirect
 )
